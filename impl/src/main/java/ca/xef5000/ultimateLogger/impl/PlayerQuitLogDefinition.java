@@ -5,6 +5,7 @@ import ca.xef5000.ultimateLogger.api.LogDefinition;
 import ca.xef5000.ultimateLogger.api.ParameterDefinition;
 import ca.xef5000.ultimateLogger.api.ParameterType;
 import net.kyori.adventure.text.TextComponent;
+import net.kyori.adventure.text.TranslatableComponent;
 import org.bukkit.event.player.PlayerQuitEvent;
 
 import java.util.List;
@@ -31,7 +32,7 @@ public class PlayerQuitLogDefinition extends LogDefinition<PlayerQuitEvent> {
         return new LogData()
                 .put("player_uuid", event.getPlayer().getUniqueId().toString())
                 .put("player_name", event.getPlayer().getName())
-                .put("quit_message", ((TextComponent)event.quitMessage()).content());
+                .put("quit_message", ((TranslatableComponent)event.quitMessage()).key());
     }
 
     @Override

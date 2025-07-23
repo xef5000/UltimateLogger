@@ -5,6 +5,7 @@ import ca.xef5000.ultimateLogger.api.LogDefinition;
 import ca.xef5000.ultimateLogger.api.ParameterDefinition;
 import ca.xef5000.ultimateLogger.api.ParameterType;
 import net.kyori.adventure.text.TextComponent;
+import net.kyori.adventure.text.TranslatableComponent;
 import org.bukkit.event.player.PlayerJoinEvent;
 
 import java.util.List;
@@ -31,7 +32,8 @@ public class PlayerJoinLogDefinition extends LogDefinition<PlayerJoinEvent> {
         return new LogData()
                 .put("player_uuid", event.getPlayer().getUniqueId().toString())
                 .put("player_name", event.getPlayer().getName())
-                .put("join_message", ((TextComponent)event.joinMessage()).content());
+                .put("join_message", ((TranslatableComponent)event.joinMessage()).key())
+                .put("ip_address", event.getPlayer().getAddress().getAddress().getHostAddress());
     }
 
     @Override
@@ -39,7 +41,8 @@ public class PlayerJoinLogDefinition extends LogDefinition<PlayerJoinEvent> {
         return List.of(
                 new ParameterDefinition("player_name", "Player Name", ParameterType.STRING),
                 new ParameterDefinition("player_uuid", "Player UUID", ParameterType.UUID),
-                new ParameterDefinition("join_message", "Join Message", ParameterType.STRING)
+                new ParameterDefinition("join_message", "Join Message", ParameterType.STRING),
+                new ParameterDefinition("ip_address", "IP Address", ParameterType.STRING)
         );
     }
 }
