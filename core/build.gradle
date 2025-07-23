@@ -1,0 +1,57 @@
+// core/build.gradle
+plugins {
+    // The Shadow plugin bundles all necessary code (from 'impl') into one final JAR.
+    id 'com.github.johnrengelman.shadow' version '8.1.1'
+    // The run-paper plugin for testing the server.
+    id 'xyz.jpenilla.run-paper' version '2.3.1'
+}
+
+dependencies {
+    // 'core' depends on the 'api' for its own logic.
+    implementation project(':api')
+    // We use 'implementation' to include the code from the 'impl' module in the final JAR.
+    implementation project(':impl')
+
+    implementation 'com.google.code.gson:gson:2.11.0'
+
+    implementation 'com.zaxxer:HikariCP:5.1.0'
+    // SQLite JDBC Driver for local file-based databases
+    implementation 'org.xerial:sqlite-jdbc:3.46.0.0'
+    // MySQL JDBC Driver for remote databases
+    implementation 'com.mysql:mysql-connector-j:8.4.0'
+
+
+    implementation 'com.google.guava:guava:33.2.1-jre'
+}
+
+// The shadowJar task will produce the final plugin file.
+// We disable the default 'jar' task as 'shadowJar' replaces it.
+tasks.jar.enabled = false
+
+// Configure the run-paper task to test the plugin.
+runServer {
+    minecraftVersion("1.20")
+}
+
+// Tell the build what the final artifact should be named.
+shadowJar {
+    relocate 'com.google.common', 'ca.xef5000.ultimatelogger.libs.guava'
+    relocate 'com.google.gson', 'ca.xef5000.ultimatelogger.libs.gson'
+
+    archiveBaseName.set('UltimateLogger')
+    archiveClassifier.set('') // This removes the '-all' suffix from the jar name.
+    archiveVersion.set(project.version)
+}
+
+// Make the 'build' task depend on 'shadowJar' so it always runs.
+tasks.build.dependsOn(shadowJar)
+
+// This task processes your plugin.yml file, adding the version number automatically.
+processResources {
+    def props = [version: version]
+    inputs.properties props
+    filteringCharset 'UTF-8'
+    filesMatching('plugin.yml') {
+        expand props
+    }
+}

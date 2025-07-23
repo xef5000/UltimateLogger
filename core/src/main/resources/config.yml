@@ -1,0 +1,20 @@
+# UltimateLogger Configuration
+
+# Database settings
+# type: can be "SQLITE" or "MYSQL"
+database:
+  type: "SQLITE"
+
+  # Settings for SQLite
+  sqlite:
+    # The name of the database file.
+    # It will be created in the UltimateLogger plugin folder.
+    filename: "logs.db"
+
+  # Settings for MySQL
+  mysql:
+    host: "localhost"
+    port: 3306
+    database: "ultimatelogger"
+    username: "user"
+    password: "password"

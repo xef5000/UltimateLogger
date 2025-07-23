@@ -1,0 +1,5 @@
+// impl/build.gradle
+dependencies {
+    // 'impl' depends on 'api' to implement its interfaces and abstract classes.
+    implementation project(':api')
+}

@@ -1,0 +1,10 @@
+name: UltimateLogger
+version: '${version}'
+main: ca.xef5000.ultimateLogger.UltimateLogger
+api-version: '1.20'
+
+commands:
+  logger:
+    description: Main command for the UltimateLogger plugin.
+    usage: "/<command> [view|stats|reload|help]"
+    aliases: [ul, ultlog]

@@ -1,0 +1,46 @@
+
+
+// Define properties and configurations that apply to all sub-projects.
+subprojects {
+    group = 'ca.xef5000'
+    version = '1.0.0'
+
+    apply plugin: 'java'
+
+    // All modules will be able to find dependencies from these repositories.
+    repositories {
+        mavenCentral()
+        maven {
+            name = "papermc-repo"
+            url = "https://repo.papermc.io/repository/maven-public/"
+        }
+        maven {
+            name = "sonatype"
+            url = "https://oss.sonatype.org/content/groups/public/"
+        }
+    }
+
+    // All modules require the Paper API to compile.
+    dependencies {
+        // Use compileOnly since the server provides the API at runtime.
+        compileOnly("io.papermc.paper:paper-api:1.20.1-R0.1-SNAPSHOT")
+    }
+
+    // Standardize Java compilation settings across all modules.
+    def targetJavaVersion = 17
+    java {
+        def javaVersion = JavaVersion.toVersion(targetJavaVersion)
+        sourceCompatibility = javaVersion
+        targetCompatibility = javaVersion
+        if (JavaVersion.current() < javaVersion) {
+            toolchain.languageVersion = JavaLanguageVersion.of(targetJavaVersion)
+        }
+    }
+
+    tasks.withType(JavaCompile).configureEach {
+        options.encoding = 'UTF-8'
+        if (targetJavaVersion >= 10 || JavaVersion.current().isJava10Compatible()) {
+            options.release.set(targetJavaVersion)
+        }
+    }
+}
