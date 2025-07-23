@@ -2,7 +2,7 @@ package ca.xef5000.ultimateLogger;
 
 import ca.xef5000.ultimateLogger.commands.LoggerCommands;
 import ca.xef5000.ultimateLogger.frontend.GuiManager;
-import ca.xef5000.ultimateLogger.impl.BlockBreakLogDefinition;
+import ca.xef5000.ultimateLogger.impl.*;
 import ca.xef5000.ultimateLogger.managers.ChatInputManager;
 import ca.xef5000.ultimateLogger.managers.ConfigManager;
 import ca.xef5000.ultimateLogger.managers.DatabaseManager;
@@ -50,6 +50,12 @@ public final class UltimateLogger extends JavaPlugin {
 
     private void registerLogDefinitions() {
         logManager.registerLogDefinition(new BlockBreakLogDefinition());
+        logManager.registerLogDefinition(new BlockPlaceLogDefinition());
+        logManager.registerLogDefinition(new PlayerChatLogDefinition());
+        logManager.registerLogDefinition(new PlayerCommandLogDefinition());
+        logManager.registerLogDefinition(new PlayerDeathLogDefinition());
+        logManager.registerLogDefinition(new PlayerJoinLogDefinition());
+        logManager.registerLogDefinition(new PlayerQuitLogDefinition());
     }
 
     private void registerCommands() {
