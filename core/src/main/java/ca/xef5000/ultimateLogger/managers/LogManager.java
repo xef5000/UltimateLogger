@@ -43,10 +43,10 @@ public class LogManager {
     public LogManager(UltimateLogger plugin, DatabaseManager dbManager) {
         this.plugin = plugin;
         this.dbManager = dbManager;
-        // Build a cache that holds up to 50 pages, and entries expire 5 minutes after last access.
+        // Build a cache with size and expiry time from config
         this.logCache = CacheBuilder.newBuilder()
-                .maximumSize(100)
-                .expireAfterAccess(5, TimeUnit.MINUTES)
+                .maximumSize(plugin.getConfigManager().getLogCacheMaxSize())
+                .expireAfterAccess(plugin.getConfigManager().getLogCacheExpiryMinutes(), TimeUnit.MINUTES)
                 .build();
     }
 
@@ -86,7 +86,8 @@ public class LogManager {
             public void run() {
                 // Process the queue in batches to be efficient
                 List<LogDataTuple> batch = new ArrayList<>();
-                while (!saveQueue.isEmpty() && batch.size() < 100) { // Process up to 100 logs per batch
+                int batchSize = plugin.getConfigManager().getLogBatchSize();
+                while (!saveQueue.isEmpty() && batch.size() < batchSize) { // Process up to configured batch size
                     batch.add(saveQueue.poll());
                 }
 
@@ -94,7 +95,7 @@ public class LogManager {
                     saveBatch(batch);
                 }
             }
-        }.runTaskTimerAsynchronously(plugin, 100L, 100L); // Run every 5 seconds (100 ticks)
+        }.runTaskTimerAsynchronously(plugin, plugin.getConfigManager().getLogBatchInterval(), plugin.getConfigManager().getLogBatchInterval()); // Run at configured interval
     }
 
     private void saveBatch(List<LogDataTuple> batch) {

@@ -45,7 +45,7 @@ public class DatabaseManager {
             config.setJdbcUrl("jdbc:sqlite:" + dbFile.getAbsolutePath());
         }
 
-        config.setMaximumPoolSize(10); // A good default pool size
+        config.setMaximumPoolSize(configManager.getDatabasePoolMaxSize()); // Pool size from config
         config.setConnectionTestQuery("SELECT 1");
 
         this.dataSource = new HikariDataSource(config);

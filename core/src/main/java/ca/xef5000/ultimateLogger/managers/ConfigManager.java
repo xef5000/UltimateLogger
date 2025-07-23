@@ -41,4 +41,27 @@ public class ConfigManager {
     public String getMySQLPassword() {
         return config.getString("database.mysql.password");
     }
+
+    // Database connection pool settings
+    public int getDatabasePoolMaxSize() {
+        return config.getInt("database.pool.max-size", 10);
+    }
+
+    // Log Manager cache settings
+    public int getLogCacheMaxSize() {
+        return config.getInt("log-manager.cache.max-size", 100);
+    }
+
+    public int getLogCacheExpiryMinutes() {
+        return config.getInt("log-manager.cache.expiry-minutes", 5);
+    }
+
+    // Log Manager batch processing settings
+    public int getLogBatchSize() {
+        return config.getInt("log-manager.batch.size", 100);
+    }
+
+    public int getLogBatchInterval() {
+        return config.getInt("log-manager.batch.interval", 100);
+    }
 }

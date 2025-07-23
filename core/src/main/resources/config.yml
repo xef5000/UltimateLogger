@@ -18,3 +18,24 @@ database:
     database: "ultimatelogger"
     username: "user"
     password: "password"
+
+  # Connection pool settings
+  pool:
+    # Maximum number of database connections in the pool
+    max-size: 10
+
+# Log Manager settings
+log-manager:
+  # Cache settings
+  cache:
+    # Maximum number of pages to store in the cache
+    max-size: 100
+    # Time in minutes after which cache entries expire if not accessed
+    expiry-minutes: 5
+
+  # Batch processing settings
+  batch:
+    # Maximum number of logs to process in a single batch
+    size: 100
+    # Interval in ticks between batch processing (20 ticks = 1 second)
+    interval: 100
