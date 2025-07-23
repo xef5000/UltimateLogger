@@ -25,6 +25,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 public class LogManager {
 
@@ -212,21 +213,11 @@ public class LogManager {
         }
     }
 
-    public CompletableFuture<List<String>> getDistinctLogTypes() {
-        return CompletableFuture.supplyAsync(() -> {
-            List<String> types = new ArrayList<>();
-            String sql = "SELECT DISTINCT log_type FROM ultimate_logs ORDER BY log_type ASC";
-            try (Connection conn = dbManager.getConnection();
-                 PreparedStatement pstmt = conn.prepareStatement(sql);
-                 ResultSet rs = pstmt.executeQuery()) {
-                while (rs.next()) {
-                    types.add(rs.getString("log_type"));
-                }
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
-            return types;
-        });
+    public List<String> getDistinctLogTypes() {
+        return logDefinitionMap.values().stream()
+                .map(LogDefinition::getId)
+                .sorted()
+                .collect(Collectors.toList());
     }
 
     public int getSaveQueueSize() {

@@ -35,22 +35,21 @@ public class FilterSelectionGui extends Gui {
         });
 
         // Fetch the distinct log types and populate the GUI
-        plugin.getLogManager().getDistinctLogTypes().thenAccept(logTypes -> {
-            plugin.getServer().getScheduler().runTask(plugin, () -> {
-                // Start populating from slot 1
-                for (int i = 0; i < logTypes.size(); i++) {
-                    if (i + 1 >= inventory.getSize()) break; // Stop if GUI is full
-                    String logType = logTypes.get(i);
-                    ItemStack typeItem = createItem(Material.BOOK, ChatColor.GREEN + logType, Collections.singletonList(ChatColor.GRAY + "Click to filter by this type."));
-                    inventory.setItem(i + 1, typeItem);
-                    setAction(i + 1, event -> {
-                        Player p = (Player) event.getWhoClicked();
-                        p.closeInventory();
-                        // Open the main logs view, passing the selected log type as the filter
-                        guiManager.openGui(p, new LogsViewGui(plugin, 1, logType, null));
-                    });
-                }
-            });
+        List<String> logTypes = plugin.getLogManager().getDistinctLogTypes();
+        plugin.getServer().getScheduler().runTask(plugin, () -> {
+            // Start populating from slot 1
+            for (int i = 0; i < logTypes.size(); i++) {
+                if (i + 1 >= inventory.getSize()) break; // Stop if GUI is full
+                String logType = logTypes.get(i);
+                ItemStack typeItem = createItem(Material.BOOK, ChatColor.GREEN + logType, Collections.singletonList(ChatColor.GRAY + "Click to filter by this type."));
+                inventory.setItem(i + 1, typeItem);
+                setAction(i + 1, event -> {
+                    Player p = (Player) event.getWhoClicked();
+                    p.closeInventory();
+                    // Open the main logs view, passing the selected log type as the filter
+                    guiManager.openGui(p, new LogsViewGui(plugin, 1, logType, null));
+                });
+            }
         });
     }
 
