@@ -44,3 +44,7 @@ log-manager:
   disabled-log-types:
     - block_break
     - block_place
+
+  # Webhook settings
+  webhooks:
+    #block_break: "https://discord.com/api/webhooks/1234567890/abcdefghijklmnopqrstuvwxyz"

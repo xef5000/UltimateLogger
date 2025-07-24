@@ -3,10 +3,7 @@ package ca.xef5000.ultimateLogger;
 import ca.xef5000.ultimateLogger.commands.LoggerCommands;
 import ca.xef5000.ultimateLogger.frontend.GuiManager;
 import ca.xef5000.ultimateLogger.impl.*;
-import ca.xef5000.ultimateLogger.managers.ChatInputManager;
-import ca.xef5000.ultimateLogger.managers.ConfigManager;
-import ca.xef5000.ultimateLogger.managers.DatabaseManager;
-import ca.xef5000.ultimateLogger.managers.LogManager;
+import ca.xef5000.ultimateLogger.managers.*;
 import org.bukkit.event.HandlerList;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -19,6 +16,7 @@ public final class UltimateLogger extends JavaPlugin {
     private LogManager logManager;
     private GuiManager guiManager;
     private ChatInputManager chatInputManager;
+    private WebhookManager webhookManager;
 
     @Override
     public void onEnable() {
@@ -27,16 +25,22 @@ public final class UltimateLogger extends JavaPlugin {
         if (this.databaseManager != null) {
             this.databaseManager.close();
         }
+        this.webhookManager = new WebhookManager(this);
+        init();
+
+        getLogger().info("UltimateLogger has been enabled!");
+    }
+
+    private void init() {
         this.databaseManager = new DatabaseManager(this, configManager);
-        this.logManager = new LogManager(this, databaseManager);
+        this.logManager = new LogManager(this, webhookManager, databaseManager);
         this.logManager.initialize();
         this.guiManager = new GuiManager(this);
         this.chatInputManager = new ChatInputManager(this);
 
+
         registerLogDefinitions();
         registerCommands();
-
-        getLogger().info("UltimateLogger has been enabled!");
     }
 
     @Override
@@ -62,15 +66,7 @@ public final class UltimateLogger extends JavaPlugin {
         if (this.databaseManager != null) {
             this.databaseManager.close();
         }
-        this.databaseManager = new DatabaseManager(this, configManager);
-        this.logManager = new LogManager(this, databaseManager);
-        this.logManager.initialize();
-        this.guiManager = new GuiManager(this);
-        this.chatInputManager = new ChatInputManager(this);
-
-        // Re-register everything with the new config settings
-        registerLogDefinitions();
-        registerCommands();
+        init();
     }
 
     private void registerLogDefinitions() {

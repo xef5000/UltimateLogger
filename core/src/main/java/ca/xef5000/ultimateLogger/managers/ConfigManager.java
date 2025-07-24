@@ -1,11 +1,10 @@
 package ca.xef5000.ultimateLogger.managers;
 
 import ca.xef5000.ultimateLogger.UltimateLogger;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 public class ConfigManager {
 
@@ -74,5 +73,19 @@ public class ConfigManager {
         List<String> disabledList = config.getStringList("log-manager.disabled-log-types");
         // Return it as a HashSet for efficient .contains() checks.
         return new HashSet<>(disabledList);
+    }
+
+    public Map<String, String> getWebhookUrls() {
+        Map<String, String> webhookMap = new HashMap<>();
+        ConfigurationSection section = config.getConfigurationSection("log-manager.webhooks");
+        if (section != null) {
+            for (String key : section.getKeys(false)) {
+                String url = section.getString(key);
+                if (url != null && !url.isEmpty()) {
+                    webhookMap.put(key, url);
+                }
+            }
+        }
+        return webhookMap;
     }
 }

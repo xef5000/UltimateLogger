@@ -30,6 +30,7 @@ public class LogManager {
 
     private final UltimateLogger plugin;
     private final DatabaseManager dbManager;
+    private final WebhookManager webhookManager;
 
     // A thread-safe queue for logs waiting to be saved.
     private final Queue<LogDataTuple> saveQueue = new ConcurrentLinkedQueue<>();
@@ -40,11 +41,15 @@ public class LogManager {
 
     private final Set<String> disabledLogTypes;
 
-    public LogManager(UltimateLogger plugin, DatabaseManager dbManager) {
+    private final Map<String, String> webhookUrls;
+
+    public LogManager(UltimateLogger plugin, WebhookManager webhookManager, DatabaseManager dbManager) {
         this.plugin = plugin;
         this.dbManager = dbManager;
+        this.webhookManager = webhookManager;
 
         this.disabledLogTypes = plugin.getConfigManager().getDisabledLogTypes();
+        this.webhookUrls = plugin.getConfigManager().getWebhookUrls();
 
         // Build a cache with size and expiry time from config
         this.logCache = CacheBuilder.newBuilder()
@@ -85,6 +90,11 @@ public class LogManager {
 
     private void queueLog(String logType, LogData data) {
         saveQueue.add(new LogDataTuple(logType, data));
+
+        String webhookUrl = webhookUrls.get(logType);
+        if (webhookUrl != null) {
+            webhookManager.sendWebhook(webhookUrl, logType, data);
+        }
     }
 
     private void startSaveTask() {
