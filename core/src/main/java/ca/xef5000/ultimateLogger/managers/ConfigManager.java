@@ -3,6 +3,10 @@ package ca.xef5000.ultimateLogger.managers;
 import ca.xef5000.ultimateLogger.UltimateLogger;
 import org.bukkit.configuration.file.FileConfiguration;
 
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
 public class ConfigManager {
 
     private final FileConfiguration config;
@@ -63,5 +67,12 @@ public class ConfigManager {
 
     public int getLogBatchInterval() {
         return config.getInt("log-manager.batch.interval", 100);
+    }
+
+    public Set<String> getDisabledLogTypes() {
+        // getStringList returns an empty list if the path doesn't exist.
+        List<String> disabledList = config.getStringList("log-manager.disabled-log-types");
+        // Return it as a HashSet for efficient .contains() checks.
+        return new HashSet<>(disabledList);
     }
 }

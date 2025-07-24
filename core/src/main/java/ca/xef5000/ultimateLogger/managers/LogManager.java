@@ -17,10 +17,7 @@ import org.bukkit.scheduler.BukkitRunnable;
 import java.lang.reflect.Type;
 import java.sql.*;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Queue;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -41,9 +38,14 @@ public class LogManager {
 
     private final Map<String, LogDefinition<?>> logDefinitionMap = new ConcurrentHashMap<>();
 
+    private final Set<String> disabledLogTypes;
+
     public LogManager(UltimateLogger plugin, DatabaseManager dbManager) {
         this.plugin = plugin;
         this.dbManager = dbManager;
+
+        this.disabledLogTypes = plugin.getConfigManager().getDisabledLogTypes();
+
         // Build a cache with size and expiry time from config
         this.logCache = CacheBuilder.newBuilder()
                 .maximumSize(plugin.getConfigManager().getLogCacheMaxSize())
@@ -60,6 +62,10 @@ public class LogManager {
      * Dynamically registers a listener for a given LogDefinition.
      */
     public <T extends Event> void registerLogDefinition(LogDefinition<T> definition) {
+        if (disabledLogTypes.contains(definition.getId())) {
+            return; // Abort registration
+        }
+
         plugin.getServer().getPluginManager().registerEvent(
                 definition.getEventClass(),
                 new Listener() {}, // Empty listener object

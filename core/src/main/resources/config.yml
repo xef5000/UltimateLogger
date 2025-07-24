@@ -39,3 +39,8 @@ log-manager:
     size: 100
     # Interval in ticks between batch processing (20 ticks = 1 second)
     interval: 100
+
+  # Log types to disable
+  disabled-log-types:
+    - block_break
+    - block_place

@@ -134,7 +134,7 @@ public class LoggerCommands implements CommandExecutor, TabCompleter {
             sender.sendMessage(ChatColor.RED + "You do not have permission to use this command.");
             return;
         }
-        plugin.reloadPluginConfig();
+        plugin.fullPluginReload();
         sender.sendMessage(ChatColor.GREEN + "UltimateLogger configuration has been reloaded!");
     }
 

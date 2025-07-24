@@ -7,6 +7,7 @@ import ca.xef5000.ultimateLogger.managers.ChatInputManager;
 import ca.xef5000.ultimateLogger.managers.ConfigManager;
 import ca.xef5000.ultimateLogger.managers.DatabaseManager;
 import ca.xef5000.ultimateLogger.managers.LogManager;
+import org.bukkit.event.HandlerList;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.Objects;
@@ -46,6 +47,30 @@ public final class UltimateLogger extends JavaPlugin {
             this.databaseManager.close();
         }
         getLogger().info("UltimateLogger has been disabled.");
+    }
+
+    public void fullPluginReload() {
+        // Unregister all event listeners this plugin has registered.
+        // This is crucial for a clean reload.
+        HandlerList.unregisterAll(this);
+
+        // Reload the config.yml file from disk
+        reloadConfig();
+        this.configManager = new ConfigManager(this);
+
+        // Re-initialize managers that depend on the config
+        if (this.databaseManager != null) {
+            this.databaseManager.close();
+        }
+        this.databaseManager = new DatabaseManager(this, configManager);
+        this.logManager = new LogManager(this, databaseManager);
+        this.logManager.initialize();
+        this.guiManager = new GuiManager(this);
+        this.chatInputManager = new ChatInputManager(this);
+
+        // Re-register everything with the new config settings
+        registerLogDefinitions();
+        registerCommands();
     }
 
     private void registerLogDefinitions() {
