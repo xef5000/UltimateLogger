@@ -13,6 +13,7 @@ UltimateLogger is a comprehensive logging plugin for Paper/Spigot Minecraft serv
   - Player deaths
   - Block breaking
   - Block placement
+  - etc.
 - **Database Storage**: Store logs in either SQLite (local file) or MySQL (remote database)
 - **In-game GUI**: View and filter logs directly in-game, including single log view
 - **Log Management**: Ability to archive logs to protect them from auto-deletion, and automatic log cleanup
@@ -130,7 +131,7 @@ UltimateLogger provides a flexible API for developers to extend its functionalit
     <dependency>
         <groupId>com.github.xef5000</groupId>
         <artifactId>UltimateLogger</artifactId>
-        <version>1.1.0</version>
+        <version>1.1.2</version>
         <scope>provided</scope>
     </dependency>
 </dependencies>
@@ -144,55 +145,76 @@ repositories {
 }
 
 dependencies {
-    compileOnly 'com.github.xef5000:UltimateLogger:1.1.0'
+    compileOnly 'com.github.xef5000:UltimateLogger:1.1.2'
 }
 ```
 
 ### Creating Custom Log Definitions
 
-You can create custom log definitions by extending the `LogDefinition` class:
+You can create custom log definitions by extending the `LogDefinition` class. Each log definition is responsible for capturing data from a specific Bukkit event type.
+
+Here's an example of a custom log definition for TNT explosions:
 
 ```java
 import ca.xef5000.ultimateLogger.api.LogData;
 import ca.xef5000.ultimateLogger.api.LogDefinition;
 import ca.xef5000.ultimateLogger.api.ParameterDefinition;
 import ca.xef5000.ultimateLogger.api.ParameterType;
-import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.entity.Player;
+import org.bukkit.entity.TNTPrimed;
+import org.bukkit.event.entity.EntityExplodeEvent;
 
 import java.util.List;
 
-public class PlayerInteractLogDefinition extends LogDefinition<PlayerInteractEvent> {
+public class CustomTNTLogDefinition extends LogDefinition<EntityExplodeEvent> {
     @Override
     public String getId() {
-        return "player_interact";
+        return "custom_tnt_explosion";
     }
 
     @Override
-    public Class<PlayerInteractEvent> getEventClass() {
-        return PlayerInteractEvent.class;
+    public Class<EntityExplodeEvent> getEventClass() {
+        return EntityExplodeEvent.class;
     }
 
     @Override
-    public boolean shouldLog(PlayerInteractEvent event) {
-        // Only log right-clicks on blocks
-        return event.getAction().isRightClick() && event.hasBlock();
+    public boolean shouldLog(EntityExplodeEvent event) {
+        // Only log TNT explosions
+        return event.getEntity() instanceof TNTPrimed;
     }
 
     @Override
-    public LogData captureData(PlayerInteractEvent event) {
-        return new LogData()
-                .put("player_uuid", event.getPlayer().getUniqueId().toString())
-                .put("player_name", event.getPlayer().getName())
-                .put("block_type", event.getClickedBlock().getType().toString())
-                .put("block_location", event.getClickedBlock().getLocation().toString());
+    public LogData captureData(EntityExplodeEvent event) {
+        TNTPrimed tnt = (TNTPrimed) event.getEntity();
+        
+        // Create a LogData object with structured information about the explosion
+        LogData data = new LogData()
+                .put("location_world", event.getLocation().getWorld().getName())
+                .put("location_x", event.getLocation().getBlockX())
+                .put("location_y", event.getLocation().getBlockY())
+                .put("location_z", event.getLocation().getBlockZ())
+                .put("blocks_destroyed", event.blockList().size())
+                .put("yield", event.getYield());
+
+        // Conditionally add player information if a player ignited the TNT
+        if (tnt.getSource() instanceof Player) {
+            Player player = (Player) tnt.getSource();
+            data.put("player_uuid", player.getUniqueId().toString())
+                .put("player_name", player.getName());
+        }
+
+        return data;
     }
 
     @Override
     public List<ParameterDefinition> getFilterableParameters() {
+        // Define which parameters can be used for filtering in the GUI
         return List.of(
                 new ParameterDefinition("player_name", "Player Name", ParameterType.STRING),
                 new ParameterDefinition("player_uuid", "Player UUID", ParameterType.UUID),
-                new ParameterDefinition("block_type", "Block Type", ParameterType.STRING)
+                new ParameterDefinition("location_world", "World", ParameterType.STRING),
+                new ParameterDefinition("blocks_destroyed", "Blocks Destroyed", ParameterType.INTEGER),
+                new ParameterDefinition("yield", "Explosion Yield", ParameterType.STRING)
         );
     }
 }
@@ -211,8 +233,10 @@ public class YourPlugin extends JavaPlugin {
         UltimateLogger ultimateLogger = (UltimateLogger) getServer().getPluginManager().getPlugin("UltimateLogger");
         if (ultimateLogger != null) {
             // Register your custom log definition
-            ultimateLogger.getLogManager().registerLogDefinition(new PlayerInteractLogDefinition());
+            ultimateLogger.getLogManager().registerLogDefinition(new CustomTNTLogDefinition());
             getLogger().info("Registered custom log definition with UltimateLogger!");
+        } else {
+            getLogger().warning("UltimateLogger plugin not found! Custom log definitions will not be registered.");
         }
     }
 }
