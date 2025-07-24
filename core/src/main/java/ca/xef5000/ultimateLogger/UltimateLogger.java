@@ -4,6 +4,7 @@ import ca.xef5000.ultimateLogger.commands.LoggerCommands;
 import ca.xef5000.ultimateLogger.frontend.GuiManager;
 import ca.xef5000.ultimateLogger.impl.*;
 import ca.xef5000.ultimateLogger.managers.*;
+import org.bstats.bukkit.Metrics;
 import org.bukkit.event.HandlerList;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -29,6 +30,7 @@ public final class UltimateLogger extends JavaPlugin {
         init();
 
         getLogger().info("UltimateLogger has been enabled!");
+        new Metrics(this, 26639);
     }
 
     private void init() {

@@ -22,6 +22,8 @@ dependencies {
 
 
     implementation 'com.google.guava:guava:33.2.1-jre'
+
+    implementation("org.bstats:bstats-bukkit:3.0.2")
 }
 
 // The shadowJar task will produce the final plugin file.
@@ -37,6 +39,7 @@ runServer {
 shadowJar {
     relocate 'com.google.common', 'ca.xef5000.ultimatelogger.libs.guava'
     relocate 'com.google.gson', 'ca.xef5000.ultimatelogger.libs.gson'
+    relocate 'org.bstats', 'ca.xef5000.ultimatelogger.lib.bstats'
 
     archiveBaseName.set('UltimateLogger')
     archiveClassifier.set('') // This removes the '-all' suffix from the jar name.

@@ -18,6 +18,7 @@ subprojects {
             name = "sonatype"
             url = "https://oss.sonatype.org/content/groups/public/"
         }
+        maven { url = "https://repo.bstats.org/content/repositories/releases/" }
     }
 
     // All modules require the Paper API to compile.
