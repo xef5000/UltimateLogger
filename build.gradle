@@ -5,7 +5,7 @@ subprojects {
     group = 'ca.xef5000'
     version = '1.1.2a'
 
-    apply plugin: 'java'
+    apply plugin: 'java-library'
 
     // All modules will be able to find dependencies from these repositories.
     repositories {
