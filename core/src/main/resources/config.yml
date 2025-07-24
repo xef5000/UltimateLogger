@@ -25,7 +25,7 @@ database:
     max-size: 10
 
 # Log Manager settings
-log-manager:
+logs:
   # Cache settings
   cache:
     # Maximum number of pages to store in the cache
@@ -48,3 +48,9 @@ log-manager:
   # Webhook settings
   webhooks:
     #block_break: "https://discord.com/api/webhooks/1234567890/abcdefghijklmnopqrstuvwxyz"
+
+  # How many days to keep logs before they are automatically deleted.
+  # Set to -1 to disable auto-deletion.
+  retention-period-days: 30
+  # How often (in minutes) the server should run the cleanup task to delete old logs.
+  cleanup-interval-minutes: 60

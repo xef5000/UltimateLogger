@@ -61,6 +61,7 @@ public class LogManager {
     public void initialize() {
         createTableIfNotExists();
         startSaveTask();
+        startCleanupTask();
     }
 
     /**
@@ -115,13 +116,54 @@ public class LogManager {
         }.runTaskTimerAsynchronously(plugin, plugin.getConfigManager().getLogBatchInterval(), plugin.getConfigManager().getLogBatchInterval()); // Run at configured interval
     }
 
+    private void startCleanupTask() {
+        int retentionDays = plugin.getConfigManager().getRetentionPeriodDays();
+        if (retentionDays <= 0) {
+            plugin.getLogger().info("Log retention is disabled. Cleanup task will not run.");
+            return;
+        }
+
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                plugin.getLogger().info("Running log cleanup task...");
+                String sql = "DELETE FROM ultimate_logs WHERE is_archived = ? AND expires_at < ?";
+                try (Connection conn = dbManager.getConnection(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                    pstmt.setBoolean(1, false);
+                    pstmt.setLong(2, Instant.now().toEpochMilli());
+                    int deletedRows = pstmt.executeUpdate();
+                    if (deletedRows > 0) {
+                        plugin.getLogger().info("Cleaned up and deleted " + deletedRows + " expired logs.");
+                        logCache.invalidateAll();
+                    }
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
+        }.runTaskTimerAsynchronously(plugin, 20L * 60, plugin.getConfigManager().getCleanupIntervalMinutes());
+    }
+
     private void saveBatch(List<LogDataTuple> batch) {
-        final String sql = "INSERT INTO ultimate_logs (log_type, timestamp, data) VALUES (?, ?, ?)";
+        final String sql = "INSERT INTO ultimate_logs (log_type, timestamp, is_archived, expires_at, data) VALUES (?, ?, ?, ?, ?)";
+
+        long now = Instant.now().toEpochMilli();
+        long retentionMillis = TimeUnit.DAYS.toMillis(plugin.getConfigManager().getRetentionPeriodDays());
+
         try (Connection conn = dbManager.getConnection(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
             for (LogDataTuple tuple : batch) {
+                // The parameter setting logic is now correct for the updated SQL string.
                 pstmt.setString(1, tuple.logType());
-                pstmt.setTimestamp(2, Timestamp.from(Instant.now()));
-                pstmt.setString(3, tuple.data().toJson()); // We'll store the data as JSON text
+                pstmt.setLong(2, now);
+                pstmt.setBoolean(3, false); // is_archived
+
+                // Set expires_at unless retention is disabled
+                if (retentionMillis > 0) {
+                    pstmt.setLong(4, now + retentionMillis);
+                } else {
+                    pstmt.setNull(4, Types.BIGINT);
+                }
+
+                pstmt.setString(5, tuple.data().toJson());
                 pstmt.addBatch();
             }
             pstmt.executeBatch();
@@ -136,11 +178,9 @@ public class LogManager {
      * Asynchronously fetches a page of logs. Checks cache first.
      */
     public CompletableFuture<List<LogEntry>> getLogsPage(int page, int pageSize, String filter, List<FilterCondition> advancedFilters) {
-        // Page numbers are 1-based for users, but 0-based for calculations
         int internalPage = Math.max(0, page - 1);
         CacheKey key = new CacheKey(internalPage, filter, advancedFilters);
 
-        // Check cache first
         List<LogEntry> cachedPage = logCache.getIfPresent(key);
         if (cachedPage != null) {
             return CompletableFuture.completedFuture(cachedPage);
@@ -148,36 +188,38 @@ public class LogManager {
 
         final CompletableFuture<List<LogEntry>> future = new CompletableFuture<>();
 
-        // Run the database query on an async thread using the Bukkit scheduler.
         new BukkitRunnable() {
             @Override
             public void run() {
                 List<LogEntry> logs = new ArrayList<>();
                 List<Object> params = new ArrayList<>();
-                StringBuilder sqlBuilder = new StringBuilder("SELECT id, log_type, timestamp, data FROM ultimate_logs ");
 
-                // Dynamically add a WHERE clause if a filter is provided
+                // **FIX 1: Update the SELECT statement to include the new 'is_archived' column**
+                StringBuilder sqlBuilder = new StringBuilder("SELECT id, log_type, timestamp, is_archived, data FROM ultimate_logs ");
+
                 if (filter != null && !filter.trim().isEmpty()) {
                     sqlBuilder.append("WHERE log_type = ? ");
                     params.add(filter);
+                } else {
+                    sqlBuilder.append("WHERE 1=1 "); // Start a WHERE clause if there's no type filter
                 }
 
                 if (advancedFilters != null) {
                     for (FilterCondition condition : advancedFilters) {
-                        // IMPORTANT: We must validate the comparator to prevent SQL injection
-                        if (!List.of("=", "!=", ">", "<", ">=", "<=").contains(condition.comparator())) {
-                            continue; // Skip invalid comparators
-                        }
-                        // The '$.' prefix is how you query the root of a JSON object.
+                        if (!List.of("=", "!=", ">", "<", ">=", "<=").contains(condition.comparator())) continue;
                         sqlBuilder.append(String.format("AND json_extract(data, '$.%s') %s ? ", condition.key(), condition.comparator()));
                         params.add(condition.value());
                     }
                 }
 
+                // This part of the query building is fine
                 sqlBuilder.append("ORDER BY id DESC LIMIT ? OFFSET ?");
-                params.add(pageSize);
-                params.add((page - 1) * pageSize);
-                try (Connection conn = dbManager.getConnection(); PreparedStatement pstmt = conn.prepareStatement(sqlBuilder.toString())) {
+                int offset = (page - 1) * pageSize;
+                String finalSql = sqlBuilder.toString().replace("LIMIT ? OFFSET ?", "LIMIT " + pageSize + " OFFSET " + offset);
+                // We revert to string formatting for LIMIT/OFFSET due to JDBC limitations.
+
+                try (Connection conn = dbManager.getConnection(); PreparedStatement pstmt = conn.prepareStatement(finalSql)) {
+                    // Set only the parameters for the WHERE clauses
                     for (int i = 0; i < params.size(); i++) {
                         pstmt.setObject(i + 1, params.get(i));
                     }
@@ -189,12 +231,20 @@ public class LogManager {
                         LogData data = new LogData();
                         try {
                             Type mapType = new TypeToken<Map<String, Object>>() {}.getType();
-                            Map<String, Object> parsedMap = new Gson().fromJson(jsonString, mapType);
+                            Map<String, Object> parsedMap = GSON.fromJson(jsonString, mapType);
                             if (parsedMap != null) parsedMap.forEach(data::put);
                         } catch (Exception e) {
                             data.put("parsing_failed", "true");
                         }
-                        logs.add(new LogEntry(rs.getLong("id"), rs.getString("log_type"), Instant.ofEpochMilli(rs.getLong("timestamp")), data));
+
+                        // **FIX 2: Call the new LogEntry constructor with all 5 parameters**
+                        logs.add(new LogEntry(
+                                rs.getLong("id"),
+                                rs.getString("log_type"),
+                                Instant.ofEpochMilli(rs.getLong("timestamp")),
+                                rs.getBoolean("is_archived"), // Provide the new value
+                                data
+                        ));
                     }
 
                     logCache.put(key, logs);
@@ -202,7 +252,6 @@ public class LogManager {
                 } catch (SQLException e) {
                     plugin.getLogger().severe("Failed to load logs from database:");
                     e.printStackTrace();
-
                     future.completeExceptionally(e);
                 }
             }
@@ -216,9 +265,21 @@ public class LogManager {
         String sql;
 
         if (isMySql) {
-            sql = "CREATE TABLE IF NOT EXISTS ultimate_logs (id BIGINT PRIMARY KEY AUTO_INCREMENT, log_type VARCHAR(255) NOT NULL, timestamp BIGINT NOT NULL, data JSON NOT NULL);";
+            sql = "CREATE TABLE IF NOT EXISTS ultimate_logs (" +
+                    "id BIGINT PRIMARY KEY AUTO_INCREMENT, " +
+                    "log_type VARCHAR(255) NOT NULL, " +
+                    "timestamp BIGINT NOT NULL, " +
+                    "is_archived BOOLEAN NOT NULL DEFAULT FALSE, " +
+                    "expires_at BIGINT, " +
+                    "data JSON NOT NULL);";
         } else {
-            sql = "CREATE TABLE IF NOT EXISTS ultimate_logs (id INTEGER PRIMARY KEY AUTOINCREMENT, log_type VARCHAR(255) NOT NULL, timestamp BIGINT NOT NULL, data TEXT NOT NULL);";
+            sql = "CREATE TABLE IF NOT EXISTS ultimate_logs (" +
+                    "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                    "log_type TEXT NOT NULL, " +
+                    "timestamp INTEGER NOT NULL, " +
+                    "is_archived INTEGER NOT NULL DEFAULT 0, " +
+                    "expires_at INTEGER, " +
+                    "data TEXT NOT NULL);";
         }
 
         try (Connection conn = dbManager.getConnection(); Statement stmt = conn.createStatement()) {
@@ -227,6 +288,70 @@ public class LogManager {
             plugin.getLogger().severe("Could not create 'ultimate_logs' table!");
             e.printStackTrace();
         }
+    }
+
+    /**
+     * Asynchronously fetches a single log by its unique ID.
+     * @param logId The ID of the log to fetch.
+     * @return A CompletableFuture containing an Optional of the LogEntry, or empty if not found.
+     */
+    public CompletableFuture<Optional<LogEntry>> getLogById(long logId) {
+        return CompletableFuture.supplyAsync(() -> {
+            // Select all columns for the specific log ID
+            String sql = "SELECT * FROM ultimate_logs WHERE id = ?";
+            try (Connection conn = dbManager.getConnection(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                pstmt.setLong(1, logId);
+                ResultSet rs = pstmt.executeQuery();
+
+                // Use if, as we only expect one result
+                if (rs.next()) {
+                    // This is the complete parsing logic
+                    String jsonString = rs.getString("data");
+                    LogData data = new LogData();
+                    try {
+                        Type mapType = new TypeToken<Map<String, Object>>() {}.getType();
+                        Map<String, Object> parsedMap = GSON.fromJson(jsonString, mapType);
+                        if (parsedMap != null) parsedMap.forEach(data::put);
+                    } catch (Exception e) {
+                        data.put("parsing_failed", "true");
+                    }
+
+                    // Construct the LogEntry with all 5 required parameters
+                    LogEntry entry = new LogEntry(
+                            rs.getLong("id"),
+                            rs.getString("log_type"),
+                            Instant.ofEpochMilli(rs.getLong("timestamp")),
+                            rs.getBoolean("is_archived"), // Get the new boolean value
+                            data
+                    );
+                    return Optional.of(entry);
+                }
+            } catch (SQLException e) {
+                plugin.getLogger().severe("Failed to load log by ID: " + logId);
+                e.printStackTrace();
+            }
+            // Return empty if not found or if an error occurred
+            return Optional.empty();
+        });
+    }
+
+    public CompletableFuture<Void> setLogArchivedStatus(long logId, boolean archived) {
+        return CompletableFuture.runAsync(() -> {
+            String sql = "UPDATE ultimate_logs SET is_archived = ?, expires_at = ? WHERE id = ?";
+            try (Connection conn = dbManager.getConnection(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                pstmt.setBoolean(1, archived);
+                if (archived) {
+                    pstmt.setNull(2, Types.BIGINT); // Archived logs never expire
+                } else {
+                    // Reset the expiration timer from NOW
+                    long retentionMillis = TimeUnit.DAYS.toMillis(plugin.getConfigManager().getRetentionPeriodDays());
+                    pstmt.setLong(2, Instant.now().toEpochMilli() + retentionMillis);
+                }
+                pstmt.setLong(3, logId);
+                pstmt.executeUpdate();
+                logCache.invalidateAll(); // Invalidate cache since data changed
+            } catch (SQLException e) { e.printStackTrace(); }
+        });
     }
 
     public List<String> getDistinctLogTypes() {

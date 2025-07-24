@@ -9,6 +9,7 @@ import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.jetbrains.annotations.NotNull;
 
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -22,6 +23,8 @@ public class LogsViewGui extends Gui {
     private final int pageSize = 45; // 5 rows of 9 for logs
     private final String currentFilter;
     private final List<FilterCondition> advancedFilters;
+
+    private static DateTimeFormatter format = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     public LogsViewGui(UltimateLogger plugin, int page, String filter, List<FilterCondition> advancedFilters) {
         super(54, buildTitle(filter));
@@ -119,28 +122,16 @@ public class LogsViewGui extends Gui {
     }
 
     private void populateLogs(List<LogEntry> logs) {
-        DateTimeFormatter format = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
         for (int i = 0; i < pageSize; i++) {
             if (i < logs.size()) {
                 LogEntry entry = logs.get(i);
-                List<String> lore = new ArrayList<>();
-                lore.add(ChatColor.AQUA + "Timestamp: " + ChatColor.WHITE + format.format(entry.getTimestamp().atZone(java.time.ZoneId.systemDefault())));
-                lore.add(ChatColor.AQUA + "Type: " + ChatColor.WHITE + entry.getLogType());
-                lore.add(ChatColor.AQUA + "Data: ");
-                // A simple way to display map data
-                LinkedHashMap<String, Object> dataMap = entry.getData().getData();
-                if (dataMap != null && !dataMap.isEmpty()) {
-                    // Remove our internal "raw_json" key if it exists
-
-                    for (Map.Entry<String, Object> dataEntry : dataMap.entrySet()) {
-                        String formattedKey = formatKey(dataEntry.getKey());
-
-                        lore.add(ChatColor.GOLD + formattedKey + ": " + ChatColor.WHITE + dataEntry.getValue());
-                    }
-                }
-
-                ItemStack logItem = createItem(Material.PAPER, ChatColor.GOLD + "Log #" + entry.getId(), lore);
+                ItemStack logItem = createLogItem(entry);
                 inventory.setItem(i, logItem);
+
+                setAction(i, event -> {
+                    Player p = (Player) event.getWhoClicked();
+                    guiManager.openGui(p, new SingleLogViewGui(plugin, entry.getId(), this));
+                });
             } else {
                 // Clear any remaining loading panes
                 inventory.setItem(i, null);
@@ -148,7 +139,26 @@ public class LogsViewGui extends Gui {
         }
     }
 
-    private ItemStack createItem(Material material, String name, List<String> lore) {
+    public static @NotNull ItemStack createLogItem(LogEntry entry) {
+        List<String> lore = new ArrayList<>();
+        lore.add(ChatColor.AQUA + "Timestamp: " + ChatColor.WHITE + format.format(entry.getTimestamp().atZone(java.time.ZoneId.systemDefault())));
+        lore.add(ChatColor.AQUA + "Type: " + ChatColor.WHITE + entry.getLogType());
+        lore.add(ChatColor.AQUA + "Data: ");
+        // A simple way to display map data
+        LinkedHashMap<String, Object> dataMap = entry.getData().getData();
+        if (dataMap != null && !dataMap.isEmpty()) {
+            for (Map.Entry<String, Object> dataEntry : dataMap.entrySet()) {
+                String formattedKey = formatKey(dataEntry.getKey());
+
+                lore.add(ChatColor.GOLD + formattedKey + ": " + ChatColor.WHITE + dataEntry.getValue());
+            }
+        }
+
+        ItemStack logItem = createItem(Material.PAPER, ChatColor.GOLD + "Log #" + entry.getId(), lore);
+        return logItem;
+    }
+
+    private static ItemStack createItem(Material material, String name, List<String> lore) {
         ItemStack item = new ItemStack(material, 1);
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
@@ -166,7 +176,7 @@ public class LogsViewGui extends Gui {
      * @param key The raw key string.
      * @return A formatted, human-readable string.
      */
-    private String formatKey(String key) {
+    private static String formatKey(String key) {
         if (key == null || key.isEmpty()) {
             return "";
         }

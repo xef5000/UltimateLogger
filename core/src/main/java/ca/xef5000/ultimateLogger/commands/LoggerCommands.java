@@ -4,12 +4,14 @@ import ca.xef5000.ultimateLogger.UltimateLogger;
 import ca.xef5000.ultimateLogger.api.LogEntry;
 import ca.xef5000.ultimateLogger.frontend.GuiManager;
 import ca.xef5000.ultimateLogger.frontend.LogsViewGui;
+import ca.xef5000.ultimateLogger.frontend.SingleLogViewGui;
 import ca.xef5000.ultimateLogger.managers.LogManager;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
+import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 import java.time.format.DateTimeFormatter;
@@ -57,6 +59,9 @@ public class LoggerCommands implements CommandExecutor, TabCompleter {
                 break;
             case "reload":
                 handleReloadCommand(sender);
+                break;
+            case "log":
+                handlelog(sender, args);
                 break;
             case "help":
             default:
@@ -138,6 +143,23 @@ public class LoggerCommands implements CommandExecutor, TabCompleter {
         sender.sendMessage(ChatColor.GREEN + "UltimateLogger configuration has been reloaded!");
     }
 
+    private void handlelog(CommandSender sender, String[] args) {
+        if (!sender.hasPermission("ultimatelogger.view")) {
+            sender.sendMessage(ChatColor.RED + "You do not have permission to use this command.");
+            return;
+        }
+        if (args.length < 2) {
+            sender.sendMessage(ChatColor.RED + "Usage: /logger log <id>");
+            return;
+        }
+        String id = args[1];
+        if (sender instanceof Player player) {
+            guiManager.openGui(player, new SingleLogViewGui(plugin, Long.parseLong(id), null));
+        } else {
+            sender.sendMessage(ChatColor.RED + "This command can only be used by players.");
+        }
+    }
+
     private void sendHelp(CommandSender sender) {
         sender.sendMessage(ChatColor.GOLD + "--- " + ChatColor.WHITE + "UltimateLogger Help" + ChatColor.GOLD + " ---");
         sender.sendMessage(ChatColor.AQUA + "/logger view <page>" + ChatColor.GRAY + " - View logs.");
@@ -150,7 +172,7 @@ public class LoggerCommands implements CommandExecutor, TabCompleter {
     @Override
     public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
         if (args.length == 1) {
-            return Arrays.asList("view", "stats", "reload", "help").stream()
+            return Arrays.asList("view", "stats", "reload", "help", "log").stream()
                     .filter(s -> s.startsWith(args[0].toLowerCase()))
                     .collect(Collectors.toList());
         }
