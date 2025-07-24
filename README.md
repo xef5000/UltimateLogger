@@ -9,14 +9,16 @@ UltimateLogger is a comprehensive logging plugin for Paper/Spigot Minecraft serv
 - **Extensive Event Logging**: Logs various events including:
   - Player chat messages
   - Player commands
-  - Player join/quit events
+  - Player join/quit events (including IP address)
   - Player deaths
   - Block breaking
   - Block placement
 - **Database Storage**: Store logs in either SQLite (local file) or MySQL (remote database)
-- **In-game GUI**: View and filter logs directly in-game
+- **In-game GUI**: View and filter logs directly in-game, including single log view
+- **Log Management**: Ability to archive logs to protect them from auto-deletion, and automatic log cleanup
+- **Discord Integration**: Send log notifications to Discord via webhooks
 - **Flexible API**: Easily extend the plugin with custom log definitions
-- **Configurable**: Customize database settings, cache size, batch processing, and more
+- **Configurable**: Customize database settings, cache size, batch processing, enable/disable specific log types, and more
 - **Performance Optimized**: Batch processing and connection pooling for minimal server impact
 
 ## Installation
@@ -31,14 +33,19 @@ UltimateLogger is a comprehensive logging plugin for Paper/Spigot Minecraft serv
 The plugin's configuration file (`config.yml`) allows you to customize various aspects of the plugin:
 
 ```yaml
+# UltimateLogger Configuration
+
 # Database settings
+# type: can be "SQLITE" or "MYSQL"
 database:
-  type: "SQLITE"  # Can be "SQLITE" or "MYSQL"
-  
+  type: "SQLITE"
+
   # Settings for SQLite
   sqlite:
-    filename: "logs.db"  # Database file in the plugin folder
-  
+    # The name of the database file.
+    # It will be created in the UltimateLogger plugin folder.
+    filename: "logs.db"
+
   # Settings for MySQL
   mysql:
     host: "localhost"
@@ -46,22 +53,42 @@ database:
     database: "ultimatelogger"
     username: "user"
     password: "password"
-  
+
   # Connection pool settings
   pool:
-    max-size: 10  # Maximum number of database connections
+    # Maximum number of database connections in the pool
+    max-size: 10
 
 # Log Manager settings
-log-manager:
+logs:
   # Cache settings
   cache:
-    max-size: 100  # Maximum number of pages to store in cache
-    expiry-minutes: 5  # Time in minutes after which cache entries expire
-  
+    # Maximum number of pages to store in the cache
+    max-size: 100
+    # Time in minutes after which cache entries expire if not accessed
+    expiry-minutes: 5
+
   # Batch processing settings
   batch:
-    size: 100  # Maximum number of logs to process in a single batch
-    interval: 100  # Interval in ticks between batch processing (20 ticks = 1 second)
+    # Maximum number of logs to process in a single batch
+    size: 100
+    # Interval in ticks between batch processing (20 ticks = 1 second)
+    interval: 100
+
+  # Log types to disable
+  disabled-log-types:
+    - block_break
+    - block_place
+
+  # Webhook settings
+  webhooks:
+    #block_break: "https://discord.com/api/webhooks/1234567890/abcdefghijklmnopqrstuvwxyz"
+
+  # How many days to keep logs before they are automatically deleted.
+  # Set to -1 to disable auto-deletion.
+  retention-period-days: 30
+  # How often (in minutes) the server should run the cleanup task to delete old logs.
+  cleanup-interval-minutes: 60
 ```
 
 ## Usage
@@ -70,6 +97,7 @@ log-manager:
 
 - `/logger` - Opens the log viewing GUI (requires `ultimatelogger.view` permission)
 - `/logger view <page>` - View logs in chat (requires `ultimatelogger.view` permission)
+- `/logger log <id>` - View a specific log by ID in a detailed GUI (requires `ultimatelogger.view` permission)
 - `/logger stats` - View plugin statistics (requires `ultimatelogger.stats` permission)
 - `/logger reload` - Reload the plugin configuration (requires `ultimatelogger.reload` permission)
 - `/logger help` - Show help information
@@ -79,6 +107,8 @@ log-manager:
 - `ultimatelogger.view` - Allows viewing logs
 - `ultimatelogger.stats` - Allows viewing plugin statistics
 - `ultimatelogger.reload` - Allows reloading the plugin configuration
+- `ultimatelogger.archive` - Allows archiving logs to protect them from auto-deletion
+- `ultimatelogger.unarchive` - Allows unarchiving logs to make them expire normally
 
 ## Developer API
 
@@ -100,7 +130,7 @@ UltimateLogger provides a flexible API for developers to extend its functionalit
     <dependency>
         <groupId>com.github.xef5000</groupId>
         <artifactId>UltimateLogger</artifactId>
-        <version>1.0.0</version>
+        <version>1.1.0</version>
         <scope>provided</scope>
     </dependency>
 </dependencies>
@@ -114,7 +144,7 @@ repositories {
 }
 
 dependencies {
-    compileOnly 'com.github.xef5000:UltimateLogger:1.0.0'
+    compileOnly 'com.github.xef5000:UltimateLogger:1.1.0'
 }
 ```
 
