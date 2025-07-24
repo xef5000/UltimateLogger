@@ -1,36 +1,36 @@
-package ca.xef5000.ultimateLogger.impl;
+package ca.xef5000.ultimateLogger.impl.player;
 
 import ca.xef5000.ultimateLogger.api.LogData;
 import ca.xef5000.ultimateLogger.api.LogDefinition;
 import ca.xef5000.ultimateLogger.api.ParameterDefinition;
 import ca.xef5000.ultimateLogger.api.ParameterType;
-import org.bukkit.event.player.PlayerLevelChangeEvent;
+import net.kyori.adventure.text.TextComponent;
+import org.bukkit.event.player.PlayerKickEvent;
 
 import java.util.List;
 
-public class PlayerLevelLogDefinition extends LogDefinition<PlayerLevelChangeEvent> {
+public class PlayerKickLogDefinition extends LogDefinition<PlayerKickEvent> {
     @Override
     public String getId() {
-        return "player_level";
+        return "player_kick";
     }
 
     @Override
-    public Class<PlayerLevelChangeEvent> getEventClass() {
-        return PlayerLevelChangeEvent.class;
+    public Class<PlayerKickEvent> getEventClass() {
+        return PlayerKickEvent.class;
     }
 
     @Override
-    public boolean shouldLog(PlayerLevelChangeEvent event) {
+    public boolean shouldLog(PlayerKickEvent event) {
         return true;
     }
 
     @Override
-    public LogData captureData(PlayerLevelChangeEvent event) {
+    public LogData captureData(PlayerKickEvent event) {
         return new LogData()
                 .put("player_uuid", event.getPlayer().getUniqueId().toString())
                 .put("player_name", event.getPlayer().getName())
-                .put("old_level", event.getOldLevel())
-                .put("new_level", event.getNewLevel());
+                .put("kick_reason", ((TextComponent) event.reason()).content());
     }
 
     @Override
@@ -38,8 +38,7 @@ public class PlayerLevelLogDefinition extends LogDefinition<PlayerLevelChangeEve
         return List.of(
                 new ParameterDefinition("player_name", "Player Name", ParameterType.STRING),
                 new ParameterDefinition("player_uuid", "Player UUID", ParameterType.UUID),
-                new ParameterDefinition("old_level", "Old Level", ParameterType.INTEGER),
-                new ParameterDefinition("new_level", "New Level", ParameterType.INTEGER)
+                new ParameterDefinition("kick_reason", "Kick Reason", ParameterType.STRING)
         );
     }
 }

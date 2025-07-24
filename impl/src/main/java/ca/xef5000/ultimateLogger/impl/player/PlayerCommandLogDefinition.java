@@ -1,36 +1,35 @@
-package ca.xef5000.ultimateLogger.impl;
+package ca.xef5000.ultimateLogger.impl.player;
 
 import ca.xef5000.ultimateLogger.api.LogData;
 import ca.xef5000.ultimateLogger.api.LogDefinition;
 import ca.xef5000.ultimateLogger.api.ParameterDefinition;
 import ca.xef5000.ultimateLogger.api.ParameterType;
-import io.papermc.paper.event.player.AsyncChatEvent;
-import net.kyori.adventure.text.TextComponent;
+import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 
 import java.util.List;
 
-public class PlayerChatLogDefinition extends LogDefinition<AsyncChatEvent> {
+public class PlayerCommandLogDefinition extends LogDefinition<PlayerCommandPreprocessEvent> {
     @Override
     public String getId() {
-        return "player_chat";
+        return "player_command";
     }
 
     @Override
-    public Class<AsyncChatEvent> getEventClass() {
-        return AsyncChatEvent.class;
+    public Class<PlayerCommandPreprocessEvent> getEventClass() {
+        return PlayerCommandPreprocessEvent.class;
     }
 
     @Override
-    public boolean shouldLog(AsyncChatEvent event) {
+    public boolean shouldLog(PlayerCommandPreprocessEvent event) {
         return true;
     }
 
     @Override
-    public LogData captureData(AsyncChatEvent event) {
+    public LogData captureData(PlayerCommandPreprocessEvent event) {
         return new LogData()
                 .put("player_uuid", event.getPlayer().getUniqueId().toString())
                 .put("player_name", event.getPlayer().getName())
-                .put("message", ((TextComponent) event.message()).content());
+                .put("command", event.getMessage());
     }
 
     @Override
@@ -38,7 +37,7 @@ public class PlayerChatLogDefinition extends LogDefinition<AsyncChatEvent> {
         return List.of(
                 new ParameterDefinition("player_name", "Player Name", ParameterType.STRING),
                 new ParameterDefinition("player_uuid", "Player UUID", ParameterType.UUID),
-                new ParameterDefinition("message", "Message", ParameterType.STRING)
+                new ParameterDefinition("command", "Command", ParameterType.STRING)
         );
     }
 }

@@ -2,7 +2,14 @@ package ca.xef5000.ultimateLogger;
 
 import ca.xef5000.ultimateLogger.commands.LoggerCommands;
 import ca.xef5000.ultimateLogger.frontend.GuiManager;
-import ca.xef5000.ultimateLogger.impl.*;
+import ca.xef5000.ultimateLogger.impl.action.*;
+import ca.xef5000.ultimateLogger.impl.block.AnvilLogDefinition;
+import ca.xef5000.ultimateLogger.impl.block.ChestInteractionLogDefinition;
+import ca.xef5000.ultimateLogger.impl.block.EnchantingLogDefinition;
+import ca.xef5000.ultimateLogger.impl.block.FurnaceLogDefinition;
+import ca.xef5000.ultimateLogger.impl.entity.EntityDeathLogDefinition;
+import ca.xef5000.ultimateLogger.impl.entity.PrimedTNTLogDefinition;
+import ca.xef5000.ultimateLogger.impl.player.*;
 import ca.xef5000.ultimateLogger.managers.*;
 import org.bstats.bukkit.Metrics;
 import org.bukkit.event.HandlerList;

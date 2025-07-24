@@ -1,4 +1,4 @@
-package ca.xef5000.ultimateLogger.impl;
+package ca.xef5000.ultimateLogger.impl.player;
 
 import ca.xef5000.ultimateLogger.api.LogData;
 import ca.xef5000.ultimateLogger.api.LogDefinition;

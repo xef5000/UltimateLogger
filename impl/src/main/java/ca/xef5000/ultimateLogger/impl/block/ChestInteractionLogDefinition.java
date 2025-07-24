@@ -1,10 +1,9 @@
-package ca.xef5000.ultimateLogger.impl;
+package ca.xef5000.ultimateLogger.impl.block;
 
 import ca.xef5000.ultimateLogger.api.LogData;
 import ca.xef5000.ultimateLogger.api.LogDefinition;
 import ca.xef5000.ultimateLogger.api.ParameterDefinition;
 import ca.xef5000.ultimateLogger.api.ParameterType;
-import org.bukkit.Material;
 import org.bukkit.event.inventory.InventoryOpenEvent;
 
 import java.util.List;

@@ -1,35 +1,35 @@
-package ca.xef5000.ultimateLogger.impl;
+package ca.xef5000.ultimateLogger.impl.action;
 
 import ca.xef5000.ultimateLogger.api.LogData;
 import ca.xef5000.ultimateLogger.api.LogDefinition;
 import ca.xef5000.ultimateLogger.api.ParameterDefinition;
 import ca.xef5000.ultimateLogger.api.ParameterType;
-import org.bukkit.event.block.SignChangeEvent;
+import org.bukkit.event.block.BlockPlaceEvent;
 
 import java.util.List;
 
-public class PlayerSignLogDefinition extends LogDefinition<SignChangeEvent> {
+public class BlockPlaceLogDefinition extends LogDefinition<BlockPlaceEvent> {
     @Override
     public String getId() {
-        return "player_sign";
+        return "block_place";
     }
 
     @Override
-    public Class<SignChangeEvent> getEventClass() {
-        return SignChangeEvent.class;
+    public Class<BlockPlaceEvent> getEventClass() {
+        return BlockPlaceEvent.class;
     }
 
     @Override
-    public boolean shouldLog(SignChangeEvent event) {
+    public boolean shouldLog(BlockPlaceEvent event) {
         return !event.isCancelled();
     }
 
     @Override
-    public LogData captureData(SignChangeEvent event) {
+    public LogData captureData(BlockPlaceEvent event) {
         return new LogData()
                 .put("player_uuid", event.getPlayer().getUniqueId().toString())
                 .put("player_name", event.getPlayer().getName())
-                .put("sign_text", String.join("|", event.getLines()))
+                .put("block_type", event.getBlock().getType().toString())
                 .put("location_world", event.getBlock().getLocation().getWorld().getName())
                 .put("location_x", event.getBlock().getLocation().getBlockX())
                 .put("location_y", event.getBlock().getLocation().getBlockY())
@@ -39,13 +39,14 @@ public class PlayerSignLogDefinition extends LogDefinition<SignChangeEvent> {
     @Override
     public List<ParameterDefinition> getFilterableParameters() {
         return List.of(
+                new ParameterDefinition("block_type", "Block Type", ParameterType.STRING),
                 new ParameterDefinition("player_name", "Player Name", ParameterType.STRING),
                 new ParameterDefinition("player_uuid", "Player UUID", ParameterType.UUID),
-                new ParameterDefinition("sign_text", "Sign Text", ParameterType.STRING),
-                new ParameterDefinition("location_world", "Location World", ParameterType.STRING),
                 new ParameterDefinition("location_x", "Location X", ParameterType.INTEGER),
                 new ParameterDefinition("location_y", "Location Y", ParameterType.INTEGER),
-                new ParameterDefinition("location_z", "Location Z", ParameterType.INTEGER)
+                new ParameterDefinition("location_z", "Location Z", ParameterType.INTEGER),
+                new ParameterDefinition("location_world", "Location World", ParameterType.STRING)
         );
     }
 }
+

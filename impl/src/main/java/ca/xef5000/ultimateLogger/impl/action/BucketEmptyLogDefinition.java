@@ -1,35 +1,35 @@
-package ca.xef5000.ultimateLogger.impl;
+package ca.xef5000.ultimateLogger.impl.action;
 
 import ca.xef5000.ultimateLogger.api.LogData;
 import ca.xef5000.ultimateLogger.api.LogDefinition;
 import ca.xef5000.ultimateLogger.api.ParameterDefinition;
 import ca.xef5000.ultimateLogger.api.ParameterType;
-import org.bukkit.event.player.PlayerBucketFillEvent;
+import org.bukkit.event.player.PlayerBucketEmptyEvent;
 
 import java.util.List;
 
-public class BucketFillLogDefinition extends LogDefinition<PlayerBucketFillEvent> {
+public class BucketEmptyLogDefinition extends LogDefinition<PlayerBucketEmptyEvent> {
     @Override
     public String getId() {
-        return "bucket_fill";
+        return "bucket_empty";
     }
 
     @Override
-    public Class<PlayerBucketFillEvent> getEventClass() {
-        return PlayerBucketFillEvent.class;
+    public Class<PlayerBucketEmptyEvent> getEventClass() {
+        return PlayerBucketEmptyEvent.class;
     }
 
     @Override
-    public boolean shouldLog(PlayerBucketFillEvent event) {
+    public boolean shouldLog(PlayerBucketEmptyEvent event) {
         return !event.isCancelled();
     }
 
     @Override
-    public LogData captureData(PlayerBucketFillEvent event) {
+    public LogData captureData(PlayerBucketEmptyEvent event) {
         return new LogData()
                 .put("player_uuid", event.getPlayer().getUniqueId().toString())
                 .put("player_name", event.getPlayer().getName())
-                .put("bucket_type", event.getItemStack().getType().toString())
+                .put("bucket_type", event.getBucket().toString())
                 .put("block_type", event.getBlockClicked().getType().toString())
                 .put("location_world", event.getBlockClicked().getLocation().getWorld().getName())
                 .put("location_x", event.getBlockClicked().getLocation().getBlockX())

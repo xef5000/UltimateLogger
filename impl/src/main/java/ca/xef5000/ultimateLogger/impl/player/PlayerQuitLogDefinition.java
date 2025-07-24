@@ -1,36 +1,37 @@
-package ca.xef5000.ultimateLogger.impl;
+package ca.xef5000.ultimateLogger.impl.player;
 
 import ca.xef5000.ultimateLogger.api.LogData;
 import ca.xef5000.ultimateLogger.api.LogDefinition;
 import ca.xef5000.ultimateLogger.api.ParameterDefinition;
 import ca.xef5000.ultimateLogger.api.ParameterType;
-import net.kyori.adventure.text.TextComponent;
-import org.bukkit.event.player.PlayerKickEvent;
+import net.kyori.adventure.text.TranslatableComponent;
+import org.bukkit.event.player.PlayerQuitEvent;
 
 import java.util.List;
 
-public class PlayerKickLogDefinition extends LogDefinition<PlayerKickEvent> {
+public class PlayerQuitLogDefinition extends LogDefinition<PlayerQuitEvent> {
     @Override
     public String getId() {
-        return "player_kick";
+        return "player_quit";
     }
 
     @Override
-    public Class<PlayerKickEvent> getEventClass() {
-        return PlayerKickEvent.class;
+    public Class<PlayerQuitEvent> getEventClass() {
+        return PlayerQuitEvent.class;
     }
 
     @Override
-    public boolean shouldLog(PlayerKickEvent event) {
+    public boolean shouldLog(PlayerQuitEvent event) {
         return true;
     }
 
     @Override
-    public LogData captureData(PlayerKickEvent event) {
+    public LogData captureData(PlayerQuitEvent event) {
+        assert event.quitMessage() != null;
         return new LogData()
                 .put("player_uuid", event.getPlayer().getUniqueId().toString())
                 .put("player_name", event.getPlayer().getName())
-                .put("kick_reason", ((TextComponent) event.reason()).content());
+                .put("quit_message", ((TranslatableComponent)event.quitMessage()).key());
     }
 
     @Override
@@ -38,7 +39,8 @@ public class PlayerKickLogDefinition extends LogDefinition<PlayerKickEvent> {
         return List.of(
                 new ParameterDefinition("player_name", "Player Name", ParameterType.STRING),
                 new ParameterDefinition("player_uuid", "Player UUID", ParameterType.UUID),
-                new ParameterDefinition("kick_reason", "Kick Reason", ParameterType.STRING)
+                new ParameterDefinition("quit_message", "Quit Message", ParameterType.STRING)
         );
     }
 }
+

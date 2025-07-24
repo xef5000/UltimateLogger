@@ -1,35 +1,36 @@
-package ca.xef5000.ultimateLogger.impl;
+package ca.xef5000.ultimateLogger.impl.player;
 
 import ca.xef5000.ultimateLogger.api.LogData;
 import ca.xef5000.ultimateLogger.api.LogDefinition;
 import ca.xef5000.ultimateLogger.api.ParameterDefinition;
 import ca.xef5000.ultimateLogger.api.ParameterType;
-import org.bukkit.event.player.PlayerCommandPreprocessEvent;
+import io.papermc.paper.event.player.AsyncChatEvent;
+import net.kyori.adventure.text.TextComponent;
 
 import java.util.List;
 
-public class PlayerCommandLogDefinition extends LogDefinition<PlayerCommandPreprocessEvent> {
+public class PlayerChatLogDefinition extends LogDefinition<AsyncChatEvent> {
     @Override
     public String getId() {
-        return "player_command";
+        return "player_chat";
     }
 
     @Override
-    public Class<PlayerCommandPreprocessEvent> getEventClass() {
-        return PlayerCommandPreprocessEvent.class;
+    public Class<AsyncChatEvent> getEventClass() {
+        return AsyncChatEvent.class;
     }
 
     @Override
-    public boolean shouldLog(PlayerCommandPreprocessEvent event) {
+    public boolean shouldLog(AsyncChatEvent event) {
         return true;
     }
 
     @Override
-    public LogData captureData(PlayerCommandPreprocessEvent event) {
+    public LogData captureData(AsyncChatEvent event) {
         return new LogData()
                 .put("player_uuid", event.getPlayer().getUniqueId().toString())
                 .put("player_name", event.getPlayer().getName())
-                .put("command", event.getMessage());
+                .put("message", ((TextComponent) event.message()).content());
     }
 
     @Override
@@ -37,7 +38,7 @@ public class PlayerCommandLogDefinition extends LogDefinition<PlayerCommandPrepr
         return List.of(
                 new ParameterDefinition("player_name", "Player Name", ParameterType.STRING),
                 new ParameterDefinition("player_uuid", "Player UUID", ParameterType.UUID),
-                new ParameterDefinition("command", "Command", ParameterType.STRING)
+                new ParameterDefinition("message", "Message", ParameterType.STRING)
         );
     }
 }
