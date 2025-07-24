@@ -4,6 +4,7 @@ plugins {
     id 'com.github.johnrengelman.shadow' version '8.1.1'
     // The run-paper plugin for testing the server.
     id 'xyz.jpenilla.run-paper' version '2.3.1'
+    id 'maven-publish'
 }
 
 dependencies {
@@ -56,5 +57,22 @@ processResources {
     filteringCharset 'UTF-8'
     filesMatching('plugin.yml') {
         expand props
+    }
+}
+
+publishing {
+    publications {
+        // We are creating a new publication named 'mavenJava'
+        mavenJava(MavenPublication) {
+            // These are the coordinates that other projects will use to depend on your plugin
+            groupId = project.group
+            // The artifactId should be the name of your repository/project
+            artifactId = 'UltimateLogger'
+            version = project.version
+
+            // CRITICAL: This line tells the publisher to use the output of the
+            // shadowJar task as the artifact to publish, instead of the default jar.
+            artifact shadowJar
+        }
     }
 }
