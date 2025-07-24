@@ -63,6 +63,14 @@ public class SingleLogViewGui extends Gui {
     }
 
     private void toggleArchiveStatus(Player player, boolean archive) {
+        if (archive && !player.hasPermission("ultimatelogger.archive")) {
+            player.sendMessage(ChatColor.RED + "You do not have permission to archive logs.");
+            return;
+        } else if (!archive && !player.hasPermission("ultimatelogger.unarchive")) {
+            player.sendMessage(ChatColor.RED + "You do not have permission to unarchive logs.");
+            return;
+        }
+
         plugin.getLogManager().setLogArchivedStatus(logId, archive).thenRun(() -> {
             // Re-open the GUI to show the change instantly
             plugin.getServer().getScheduler().runTask(plugin, () ->

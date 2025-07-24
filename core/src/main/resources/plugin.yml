@@ -8,3 +8,20 @@ commands:
     description: Main command for the UltimateLogger plugin.
     usage: "/<command> [view|stats|reload|help]"
     aliases: [ul, ultlog]
+
+permissions:
+  ultimatelogger.view:
+    description: Allows viewing logs
+    default: op
+  ultimatelogger.stats:
+    description: Allows viewing plugin statistics
+    default: op
+  ultimatelogger.reload:
+    description: Allows reloading the plugin configuration
+    default: op
+  ultimatelogger.archive:
+    description: Allows archiving logs to protect them from auto-deletion
+    default: op
+  ultimatelogger.unarchive:
+    description: Allows unarchiving logs to make them expire normally
+    default: op
