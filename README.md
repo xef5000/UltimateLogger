@@ -3,6 +3,8 @@
 UltimateLogger is a comprehensive logging plugin for Paper/Spigot Minecraft servers. It provides detailed logging of various player and block events, with a flexible and powerful API for developers to extend its functionality.
 
 [![](https://jitpack.io/v/xef5000/UltimateLogger.svg)](https://jitpack.io/#xef5000/UltimateLogger)
+![](https://img.shields.io/github/downloads/xef5000/UltimateLogger/total)
+
 
 ## Features
 
