@@ -79,6 +79,23 @@ public final class UltimateLogger extends JavaPlugin {
         logManager.registerLogDefinition(new PlayerDeathLogDefinition());
         logManager.registerLogDefinition(new PlayerJoinLogDefinition());
         logManager.registerLogDefinition(new PlayerQuitLogDefinition());
+        logManager.registerLogDefinition(new PlayerKickLogDefinition());
+        logManager.registerLogDefinition(new PlayerSignLogDefinition());
+        logManager.registerLogDefinition(new PlayerTeleportLogDefinition());
+        logManager.registerLogDefinition(new PlayerLevelLogDefinition());
+        logManager.registerLogDefinition(new BucketFillLogDefinition());
+        logManager.registerLogDefinition(new BucketEmptyLogDefinition());
+        logManager.registerLogDefinition(new AnvilLogDefinition());
+        logManager.registerLogDefinition(new ItemPickupLogDefinition());
+        logManager.registerLogDefinition(new ItemDropLogDefinition());
+        logManager.registerLogDefinition(new EnchantingLogDefinition());
+        logManager.registerLogDefinition(new BookEditingLogDefinition());
+        logManager.registerLogDefinition(new FurnaceLogDefinition());
+        logManager.registerLogDefinition(new GameModeLogDefinition());
+        logManager.registerLogDefinition(new PlayerCraftLogDefinition());
+        logManager.registerLogDefinition(new EntityDeathLogDefinition());
+        logManager.registerLogDefinition(new PrimedTNTLogDefinition());
+        logManager.registerLogDefinition(new ChestInteractionLogDefinition());
     }
 
     private void registerCommands() {
