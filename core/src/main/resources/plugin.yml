@@ -25,3 +25,6 @@ permissions:
   ultimatelogger.unarchive:
     description: Allows unarchiving logs to make them expire normally
     default: op
+  ultimatelogger.delete:
+    description: Allows deleting logs from the database
+    default: op

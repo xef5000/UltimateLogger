@@ -376,6 +376,27 @@ public class LogManager {
     public void invalidateCache() {
         logCache.invalidateAll();
     }
+    
+    /**
+     * Asynchronously deletes a log by its unique ID.
+     * @param logId The ID of the log to delete.
+     * @return A CompletableFuture that completes when the deletion is done.
+     */
+    public CompletableFuture<Boolean> deleteLogById(long logId) {
+        return CompletableFuture.supplyAsync(() -> {
+            String sql = "DELETE FROM ultimate_logs WHERE id = ?";
+            try (Connection conn = dbManager.getConnection(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                pstmt.setLong(1, logId);
+                int rowsAffected = pstmt.executeUpdate();
+                logCache.invalidateAll(); // Invalidate cache since data changed
+                return rowsAffected > 0; // Return true if at least one row was deleted
+            } catch (SQLException e) {
+                plugin.getLogger().severe("Failed to delete log with ID: " + logId);
+                e.printStackTrace();
+                return false;
+            }
+        });
+    }
 
     private record LogDataTuple(String logType, LogData data) {}
 

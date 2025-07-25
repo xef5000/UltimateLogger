@@ -46,6 +46,9 @@ public class SingleLogViewGui extends Gui {
 
                 // The Archive/Unarchive button
                 drawArchiveButton(entry);
+                
+                // The Delete button
+                drawDeleteButton();
             });
         });
     }
@@ -76,6 +79,39 @@ public class SingleLogViewGui extends Gui {
             plugin.getServer().getScheduler().runTask(plugin, () ->
                     plugin.getGuiManager().openGui(player, new SingleLogViewGui(plugin, logId, parent))
             );
+        });
+    }
+    
+    private void drawDeleteButton() {
+        ItemStack btn = createItem(Material.LAVA_BUCKET, "§4Delete Log", List.of("Permanently delete this log from the database."));
+        inventory.setItem(16, btn);
+        setAction(16, event -> deleteLog((Player) event.getWhoClicked()));
+    }
+    
+    private void deleteLog(Player player) {
+        if (!player.hasPermission("ultimatelogger.delete")) {
+            player.sendMessage(ChatColor.RED + "You do not have permission to delete logs.");
+            return;
+        }
+        
+        // Close the GUI first
+        player.closeInventory();
+        
+        // Delete the log
+        plugin.getLogManager().deleteLogById(logId).thenAccept(success -> {
+            plugin.getServer().getScheduler().runTask(plugin, () -> {
+                if (success) {
+                    player.sendMessage(ChatColor.GREEN + "Log #" + logId + " has been deleted successfully.");
+                    // Return to parent GUI if available
+                    if (parent != null) {
+                        plugin.getGuiManager().openGui(player, parent);
+                    }
+                } else {
+                    player.sendMessage(ChatColor.RED + "Failed to delete log #" + logId + ".");
+                    // Reopen this GUI
+                    plugin.getGuiManager().openGui(player, new SingleLogViewGui(plugin, logId, parent));
+                }
+            });
         });
     }
 
