@@ -31,7 +31,7 @@ public class PlayerQuitLogDefinition extends LogDefinition<PlayerQuitEvent> {
         return new LogData()
                 .put("player_uuid", event.getPlayer().getUniqueId().toString())
                 .put("player_name", event.getPlayer().getName())
-                .put("quit_message", ((TranslatableComponent)event.quitMessage()).key());
+                .put("quit_message", ((TranslatableComponent)event.quitMessage()) == null ? "null" : ((TranslatableComponent)event.quitMessage()).key());
     }
 
     @Override
