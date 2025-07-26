@@ -150,7 +150,10 @@ public class AdvancedFilterGui extends Gui {
         if (type == ParameterType.INTEGER || type == ParameterType.DOUBLE) {
             return List.of("=", "!=", ">", "<", ">=", "<=");
         }
-        return List.of("=", "!="); // For STRING, UUID, BOOLEAN
+        if (type == ParameterType.STRING || type == ParameterType.UUID) {
+            return List.of("=", "!=", "startswith", "endswith");
+        }
+        return List.of("=", "!="); // For BOOLEAN
     }
 
     // You already have a createItem method, ensure it's here or accessible

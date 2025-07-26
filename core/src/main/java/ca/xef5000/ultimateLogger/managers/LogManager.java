@@ -206,9 +206,17 @@ public class LogManager {
 
                 if (advancedFilters != null) {
                     for (FilterCondition condition : advancedFilters) {
-                        if (!List.of("=", "!=", ">", "<", ">=", "<=").contains(condition.comparator())) continue;
-                        sqlBuilder.append(String.format("AND json_extract(data, '$.%s') %s ? ", condition.key(), condition.comparator()));
-                        params.add(condition.value());
+                        String comparator = condition.comparator();
+                        if (List.of("=", "!=", ">", "<", ">=", "<=").contains(comparator)) {
+                            sqlBuilder.append(String.format("AND json_extract(data, '$.%s') %s ? ", condition.key(), comparator));
+                            params.add(condition.value());
+                        } else if ("startswith".equals(comparator)) {
+                            sqlBuilder.append(String.format("AND json_extract(data, '$.%s') LIKE ? ", condition.key()));
+                            params.add(condition.value() + "%");
+                        } else if ("endswith".equals(comparator)) {
+                            sqlBuilder.append(String.format("AND json_extract(data, '$.%s') LIKE ? ", condition.key()));
+                            params.add("%" + condition.value());
+                        }
                     }
                 }
 
