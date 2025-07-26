@@ -87,6 +87,7 @@ public final class UltimateLogger extends JavaPlugin {
         logManager.registerLogDefinition(new PlayerJoinLogDefinition());
         logManager.registerLogDefinition(new PlayerQuitLogDefinition());
         logManager.registerLogDefinition(new PlayerKickLogDefinition());
+        logManager.registerLogDefinition(new PlayerKillLogDefinition());
         logManager.registerLogDefinition(new PlayerSignLogDefinition());
         logManager.registerLogDefinition(new PlayerTeleportLogDefinition());
         logManager.registerLogDefinition(new PlayerLevelLogDefinition());
