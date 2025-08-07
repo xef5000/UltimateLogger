@@ -28,3 +28,6 @@ permissions:
   ultimatelogger.delete:
     description: Allows deleting logs from the database
     default: op
+  ultimatelogger.clean:
+    description: Allows manual cleaning of the database
+    default: op

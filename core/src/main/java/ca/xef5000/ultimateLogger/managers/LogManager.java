@@ -128,21 +128,39 @@ public class LogManager {
         new BukkitRunnable() {
             @Override
             public void run() {
-                plugin.getLogger().info("Running log cleanup task...");
-                String sql = "DELETE FROM ultimate_logs WHERE is_archived = ? AND expires_at < ?";
-                try (Connection conn = dbManager.getConnection(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
-                    pstmt.setBoolean(1, false);
-                    pstmt.setLong(2, Instant.now().toEpochMilli());
-                    int deletedRows = pstmt.executeUpdate();
-                    if (deletedRows > 0) {
-                        plugin.getLogger().info("Cleaned up and deleted " + deletedRows + " expired logs.");
-                        logCache.invalidateAll();
-                    }
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                }
+                cleanDatabase().thenAccept(
+                        deletedCount -> plugin.getLogger().info("Cleaned up and deleted " + deletedCount + " expired logs.")
+                );
             }
         }.runTaskTimerAsynchronously(plugin, 20L * 60, plugin.getConfigManager().getCleanupIntervalMinutes());
+    }
+
+    /**
+     * Asynchronously deletes all logs that are not archived and have expired.
+     * @return A CompletableFuture that completes when the deletion is done.
+     */
+    public CompletableFuture<Integer> cleanDatabase() {
+        plugin.getLogger().info("Running log cleanup task...");
+        return CompletableFuture.supplyAsync(() -> {
+            String sql = "DELETE FROM ultimate_logs WHERE is_archived = ? AND expires_at < ?";
+            try (Connection conn = dbManager.getConnection();
+                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+                pstmt.setBoolean(1, false);
+                pstmt.setLong(2, Instant.now().toEpochMilli());
+                int deletedRows = pstmt.executeUpdate();
+
+                if (deletedRows > 0) {
+                    plugin.getLogger().info("Cleaned up and deleted " + deletedRows + " expired logs.");
+                    logCache.invalidateAll();
+                }
+
+                return deletedRows;
+            } catch (SQLException e) {
+                e.printStackTrace();
+                return 0;
+            }
+        });
     }
 
     private void saveBatch(List<LogDataTuple> batch) {

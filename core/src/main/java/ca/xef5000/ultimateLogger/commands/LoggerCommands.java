@@ -6,6 +6,7 @@ import ca.xef5000.ultimateLogger.frontend.GuiManager;
 import ca.xef5000.ultimateLogger.frontend.LogsViewGui;
 import ca.xef5000.ultimateLogger.frontend.SingleLogViewGui;
 import ca.xef5000.ultimateLogger.managers.LogManager;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -62,6 +63,9 @@ public class LoggerCommands implements CommandExecutor, TabCompleter {
                 break;
             case "log":
                 handlelog(sender, args);
+                break;
+            case "clean":
+                handleClean(sender);
                 break;
             case "help":
             default:
@@ -160,6 +164,21 @@ public class LoggerCommands implements CommandExecutor, TabCompleter {
         }
     }
 
+    private void handleClean(CommandSender sender) {
+        if (!sender.hasPermission("ultimatelogger.clean")) {
+            sender.sendMessage(ChatColor.RED + "You do not have permission to use this command.");
+            return;
+        }
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            logManager.cleanDatabase().thenAccept(
+                    deletedCount -> {
+                        plugin.getLogger().info("Cleaned up and deleted " + deletedCount + " expired logs.");
+                        sender.sendMessage(ChatColor.GREEN + "Cleaned up and deleted " + deletedCount + " expired logs.");
+                    }
+            );
+        });
+    }
+
     private void sendHelp(CommandSender sender) {
         sender.sendMessage(ChatColor.GOLD + "--- " + ChatColor.WHITE + "UltimateLogger Help" + ChatColor.GOLD + " ---");
         sender.sendMessage(ChatColor.AQUA + "/logger view <page>" + ChatColor.GRAY + " - View logs.");
@@ -167,13 +186,14 @@ public class LoggerCommands implements CommandExecutor, TabCompleter {
         sender.sendMessage(ChatColor.AQUA + "/logger reload" + ChatColor.GRAY + " - Reload the config.");
         sender.sendMessage(ChatColor.AQUA + "/logger help" + ChatColor.GRAY + " - Shows this message.");
         sender.sendMessage(ChatColor.AQUA + "/logger log <id>" + ChatColor.GRAY + " - View a specific log by ID.");
+        sender.sendMessage(ChatColor.AQUA + "/logger clean" + ChatColor.GRAY + " - Clean the database.");
     }
 
 
     @Override
     public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
         if (args.length == 1) {
-            return Arrays.asList("view", "stats", "reload", "help", "log").stream()
+            return Arrays.asList("view", "stats", "reload", "help", "log", "clean").stream()
                     .filter(s -> s.startsWith(args[0].toLowerCase()))
                     .collect(Collectors.toList());
         }
