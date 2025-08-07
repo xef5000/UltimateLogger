@@ -67,6 +67,8 @@ public final class UltimateLogger extends JavaPlugin {
         // This is crucial for a clean reload.
         HandlerList.unregisterAll(this);
 
+        logManager.shutdown();
+
         // Reload the config.yml file from disk
         reloadConfig();
         this.configManager = new ConfigManager(this);

@@ -65,4 +65,8 @@ public class DatabaseManager {
     public HikariDataSource getDataSource() {
         return dataSource;
     }
+
+    public boolean isOperational() {
+        return dataSource != null && !dataSource.isClosed();
+    }
 }

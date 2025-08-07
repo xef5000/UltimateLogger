@@ -13,6 +13,7 @@ import org.bukkit.event.Event;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.scheduler.BukkitTask;
 
 import java.lang.reflect.Type;
 import java.sql.*;
@@ -44,6 +45,8 @@ public class LogManager {
 
     private final Map<String, List<ConfigManager.WebhookConfig>> webhookConfigs;
 
+    private BukkitTask saveTask;
+
     public LogManager(UltimateLogger plugin, WebhookManager webhookManager, DatabaseManager dbManager) {
         this.plugin = plugin;
         this.dbManager = dbManager;
@@ -63,6 +66,27 @@ public class LogManager {
         createTableIfNotExists();
         startSaveTask();
         startCleanupTask();
+    }
+
+    public void shutdown() {
+        // Cancel the existing scheduled task if it's running
+        if (saveTask != null) {
+            saveTask.cancel();
+            saveTask = null;
+        }
+
+        // Process any remaining logs in the queue
+        if (!saveQueue.isEmpty()) {
+            List<LogDataTuple> batch = new ArrayList<>();
+            saveQueue.addAll(batch);
+            if (!batch.isEmpty()) {
+                try {
+                    saveBatch(batch);
+                } catch (Exception e) {
+                    plugin.getLogger().warning("Failed to save final batch of logs during shutdown: " + e.getMessage());
+                }
+            }
+        }
     }
 
     /**
@@ -91,24 +115,26 @@ public class LogManager {
     }
 
     private void queueLog(String logType, LogData data) {
-        saveQueue.add(new LogDataTuple(logType, data, logID -> {
-            List<ConfigManager.WebhookConfig> configs = webhookConfigs.get(logType);
-            if (configs != null) {
-                for (ConfigManager.WebhookConfig config : configs) {
-                    data.setId(logID);
-                    webhookManager.sendWebhook(
-                            config.url(),
-                            logType,
-                            data,
-                            config.conditions()
-                    );
+        if (dbManager != null && dbManager.isOperational()) {
+            saveQueue.add(new LogDataTuple(logType, data, logID -> {
+                List<ConfigManager.WebhookConfig> configs = webhookConfigs.get(logType);
+                if (configs != null) {
+                    for (ConfigManager.WebhookConfig config : configs) {
+                        data.setId(logID);
+                        webhookManager.sendWebhook(
+                                config.url(),
+                                logType,
+                                data,
+                                config.conditions()
+                        );
+                    }
                 }
-            }
-        }));
+            }));
+        }
     }
 
     private void startSaveTask() {
-        new BukkitRunnable() {
+        this.saveTask = new BukkitRunnable() {
             @Override
             public void run() {
                 // Process the queue in batches to be efficient
@@ -478,6 +504,27 @@ public class LogManager {
         });
     }
 
+    /**
+     * Asynchronously deletes a log by its unique ID.
+     * @param logId The ID of the log to delete.
+     * @return A CompletableFuture that completes when the deletion is done.
+     */
+    public CompletableFuture<Boolean> deleteLogById(long logId) {
+        return CompletableFuture.supplyAsync(() -> {
+            String sql = "DELETE FROM ultimate_logs WHERE id = ?";
+            try (Connection conn = dbManager.getConnection(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                pstmt.setLong(1, logId);
+                int rowsAffected = pstmt.executeUpdate();
+                logCache.invalidateAll(); // Invalidate cache since data changed
+                return rowsAffected > 0; // Return true if at least one row was deleted
+            } catch (SQLException e) {
+                plugin.getLogger().severe("Failed to delete log with ID: " + logId);
+                e.printStackTrace();
+                return false;
+            }
+        });
+    }
+
     public List<String> getDistinctLogTypes() {
         return logDefinitionMap.values().stream()
                 .map(LogDefinition::getId)
@@ -499,27 +546,6 @@ public class LogManager {
 
     public void invalidateCache() {
         logCache.invalidateAll();
-    }
-    
-    /**
-     * Asynchronously deletes a log by its unique ID.
-     * @param logId The ID of the log to delete.
-     * @return A CompletableFuture that completes when the deletion is done.
-     */
-    public CompletableFuture<Boolean> deleteLogById(long logId) {
-        return CompletableFuture.supplyAsync(() -> {
-            String sql = "DELETE FROM ultimate_logs WHERE id = ?";
-            try (Connection conn = dbManager.getConnection(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
-                pstmt.setLong(1, logId);
-                int rowsAffected = pstmt.executeUpdate();
-                logCache.invalidateAll(); // Invalidate cache since data changed
-                return rowsAffected > 0; // Return true if at least one row was deleted
-            } catch (SQLException e) {
-                plugin.getLogger().severe("Failed to delete log with ID: " + logId);
-                e.printStackTrace();
-                return false;
-            }
-        });
     }
 
     private record LogDataTuple(String logType, LogData data, Consumer<Long> onSaveComplete) {}
