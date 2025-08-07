@@ -168,6 +168,82 @@ public class LogManager {
         });
     }
 
+    /**
+     * Clears logs matching the specified filter and conditions.
+     * @param filter The log type filter
+     * @param conditions Additional filter conditions
+     * @return A CompletableFuture with the number of logs deleted
+     */
+    public CompletableFuture<Integer> clearLogs(String filter, List<FilterCondition> conditions) {
+        return CompletableFuture.supplyAsync(() -> {
+            List<Object> params = new ArrayList<>();
+            StringBuilder sqlBuilder = new StringBuilder("DELETE FROM ultimate_logs WHERE ");
+
+            if (filter != null && !filter.isEmpty()) {
+                sqlBuilder.append("log_type = ? ");
+                params.add(filter);
+            } else {
+                sqlBuilder.append("1=1 ");
+            }
+
+            if (conditions != null && !conditions.isEmpty()) {
+                for (FilterCondition condition : conditions) {
+                    String key = condition.key();
+                    String comparator = condition.comparator();
+                    Object value = condition.value();
+
+                    switch (comparator) {
+                        case "=" -> sqlBuilder.append("AND json_extract(data, '$.").append(key).append("') = ? ");
+                        case "!=" -> sqlBuilder.append("AND json_extract(data, '$.").append(key).append("') != ? ");
+                        case ">" -> sqlBuilder.append("AND CAST(json_extract(data, '$.").append(key).append("') AS NUMERIC) > ? ");
+                        case "<" -> sqlBuilder.append("AND CAST(json_extract(data, '$.").append(key).append("') AS NUMERIC) < ? ");
+                        case ">=" -> sqlBuilder.append("AND CAST(json_extract(data, '$.").append(key).append("') AS NUMERIC) >= ? ");
+                        case "<=" -> sqlBuilder.append("AND CAST(json_extract(data, '$.").append(key).append("') AS NUMERIC) <= ? ");
+                        case "startswith" -> {
+                            sqlBuilder.append("AND json_extract(data, '$.").append(key).append("') LIKE ? ");
+                            value = value.toString() + "%";
+                        }
+                        case "endswith" -> {
+                            sqlBuilder.append("AND json_extract(data, '$.").append(key).append("') LIKE ? ");
+                            value = "%" + value.toString();
+                        }
+                        case "contains" -> {
+                            sqlBuilder.append("AND json_extract(data, '$.").append(key).append("') LIKE ? ");
+                            value = "%" + value.toString() + "%";
+                        }
+                        default -> {
+                            continue;
+                        }
+                    }
+                    params.add(value);
+                }
+            }
+
+            try (Connection conn = dbManager.getConnection();
+                 PreparedStatement pstmt = conn.prepareStatement(sqlBuilder.toString())) {
+
+                // Set parameters
+                for (int i = 0; i < params.size(); i++) {
+                    pstmt.setObject(i + 1, params.get(i));
+                }
+
+                int deletedCount = pstmt.executeUpdate();
+
+                // Invalidate cache since data has changed
+                logCache.invalidateAll();
+
+                plugin.getLogger().info("Cleared " + deletedCount + " logs with filter: " +
+                        filter + " and " + conditions.size() + " conditions.");
+
+                return deletedCount;
+            } catch (SQLException e) {
+                plugin.getLogger().severe("Error clearing logs: " + e.getMessage());
+                e.printStackTrace();
+                throw new RuntimeException("Failed to clear logs", e);
+            }
+        });
+    }
+
     private void saveBatch(List<LogDataTuple> batch) {
         final String sql = "INSERT INTO ultimate_logs (log_type, timestamp, is_archived, expires_at, data) VALUES (?, ?, ?, ?, ?)";
 
