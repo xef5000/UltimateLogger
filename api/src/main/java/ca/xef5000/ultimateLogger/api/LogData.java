@@ -14,6 +14,8 @@ public class LogData {
 
     private final LinkedHashMap<String, Object> data = new LinkedHashMap<>();
 
+    private long id;
+
     public LogData() {
     }
 
@@ -30,6 +32,14 @@ public class LogData {
 
     public LinkedHashMap<String, Object> getData() {
         return data;
+    }
+
+    public void setId(long id) {
+        this.id = id;
+    }
+
+    public long getId() {
+        return id;
     }
 
     @Nullable

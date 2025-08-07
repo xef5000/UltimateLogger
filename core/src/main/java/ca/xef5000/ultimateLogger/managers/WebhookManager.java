@@ -73,11 +73,14 @@ public class WebhookManager {
             ));
         }
 
+        long logId = data.getId();
+
         // Build the main embed object
         Map<String, Object> embed = Map.of(
                 "title", "New Log: " + logType,
                 "color", 5814783, // A nice blue color
                 "fields", fields,
+                "footer", Map.of("text", "Log ID: " + logId),
                 "timestamp", java.time.Instant.now().toString()
         );
 

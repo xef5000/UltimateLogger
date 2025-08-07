@@ -22,6 +22,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class LogManager {
@@ -90,12 +91,13 @@ public class LogManager {
     }
 
     private void queueLog(String logType, LogData data) {
-        saveQueue.add(new LogDataTuple(logType, data));
-
-        String webhookUrl = webhookUrls.get(logType);
-        if (webhookUrl != null) {
-            webhookManager.sendWebhook(webhookUrl, logType, data);
-        }
+        saveQueue.add(new LogDataTuple(logType, data, logID -> {
+            String webhookUrl = webhookUrls.get(logType);
+            if (webhookUrl != null) {
+                data.setId(logID);
+                webhookManager.sendWebhook(webhookUrl, logType, data);
+            }
+        }));
     }
 
     private void startSaveTask() {
@@ -149,24 +151,37 @@ public class LogManager {
         long now = Instant.now().toEpochMilli();
         long retentionMillis = TimeUnit.DAYS.toMillis(plugin.getConfigManager().getRetentionPeriodDays());
 
-        try (Connection conn = dbManager.getConnection(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        try (Connection conn = dbManager.getConnection()) {
+            int successCount = 0;
+
             for (LogDataTuple tuple : batch) {
-                // The parameter setting logic is now correct for the updated SQL string.
-                pstmt.setString(1, tuple.logType());
-                pstmt.setLong(2, now);
-                pstmt.setBoolean(3, false); // is_archived
+                try (PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+                    pstmt.setString(1, tuple.logType());
+                    pstmt.setLong(2, now);
+                    pstmt.setBoolean(3, false);
 
-                // Set expires_at unless retention is disabled
-                if (retentionMillis > 0) {
-                    pstmt.setLong(4, now + retentionMillis);
-                } else {
-                    pstmt.setNull(4, Types.BIGINT);
+                    if (retentionMillis > 0) {
+                        pstmt.setLong(4, now + retentionMillis);
+                    } else {
+                        pstmt.setNull(4, Types.BIGINT);
+                    }
+
+                    pstmt.setString(5, tuple.data().toJson());
+                    pstmt.executeUpdate(); // Execute single update
+
+                    // Get the generated ID
+                    ResultSet rs = pstmt.getGeneratedKeys();
+                    if (rs.next()) {
+                        long id = rs.getLong(1);
+                        Consumer<Long> callback = tuple.onSaveComplete();
+                        if (callback != null) {
+                            callback.accept(id);
+                            successCount++;
+                        }
+                    }
                 }
-
-                pstmt.setString(5, tuple.data().toJson());
-                pstmt.addBatch();
             }
-            pstmt.executeBatch();
+
             logCache.invalidateAll();
         } catch (SQLException e) {
             plugin.getLogger().severe("Could not save log batch to the database!");
@@ -406,7 +421,7 @@ public class LogManager {
         });
     }
 
-    private record LogDataTuple(String logType, LogData data) {}
+    private record LogDataTuple(String logType, LogData data, Consumer<Long> onSaveComplete) {}
 
     private record CacheKey(int page, String filter, List<FilterCondition> advancedFilters) {}
 }
