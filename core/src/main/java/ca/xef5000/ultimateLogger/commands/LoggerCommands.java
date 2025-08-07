@@ -166,6 +166,7 @@ public class LoggerCommands implements CommandExecutor, TabCompleter {
         sender.sendMessage(ChatColor.AQUA + "/logger stats" + ChatColor.GRAY + " - View plugin statistics.");
         sender.sendMessage(ChatColor.AQUA + "/logger reload" + ChatColor.GRAY + " - Reload the config.");
         sender.sendMessage(ChatColor.AQUA + "/logger help" + ChatColor.GRAY + " - Shows this message.");
+        sender.sendMessage(ChatColor.AQUA + "/logger log <id>" + ChatColor.GRAY + " - View a specific log by ID.");
     }
 
 
