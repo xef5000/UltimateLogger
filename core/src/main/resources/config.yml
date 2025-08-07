@@ -47,9 +47,11 @@ logs:
 
   # Webhook settings
   webhooks:
-    #block_break:
+    #all_block_break:
+    #  type: "block_break"
     #  url: "https://discord.com/api/webhooks/1234567890/abcdefghijklmnopqrstuvwxyz"
-    #player_chat:
+    #test_chat:
+    #  type: "player_chat"
     #  url: "https://discord.com/api/webhooks/1234567890/abcdefghijklmnopqrstuvwxyz"
     #  condition: "message|=|test"
 

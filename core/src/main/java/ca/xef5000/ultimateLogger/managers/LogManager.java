@@ -42,7 +42,7 @@ public class LogManager {
 
     private final Set<String> disabledLogTypes;
 
-    private final Map<String, ConfigManager.WebhookConfig> webhookConfigs;
+    private final Map<String, List<ConfigManager.WebhookConfig>> webhookConfigs;
 
     public LogManager(UltimateLogger plugin, WebhookManager webhookManager, DatabaseManager dbManager) {
         this.plugin = plugin;
@@ -92,15 +92,17 @@ public class LogManager {
 
     private void queueLog(String logType, LogData data) {
         saveQueue.add(new LogDataTuple(logType, data, logID -> {
-            ConfigManager.WebhookConfig webhookConfig = webhookConfigs.get(logType);
-            if (webhookConfig != null) {
-                data.setId(logID);
-                webhookManager.sendWebhook(
-                        webhookConfig.url(),
-                        logType,
-                        data,
-                        webhookConfig.conditions()
-                );
+            List<ConfigManager.WebhookConfig> configs = webhookConfigs.get(logType);
+            if (configs != null) {
+                for (ConfigManager.WebhookConfig config : configs) {
+                    data.setId(logID);
+                    webhookManager.sendWebhook(
+                            config.url(),
+                            logType,
+                            data,
+                            config.conditions()
+                    );
+                }
             }
         }));
     }

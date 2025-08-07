@@ -77,26 +77,53 @@ public class ConfigManager {
         return new HashSet<>(disabledList);
     }
 
-    public Map<String, WebhookConfig> getWebhookConfigs() {
-        Map<String, WebhookConfig> configs = new HashMap<>();
-        ConfigurationSection webhooksSection = config.getConfigurationSection("logs.webhooks");
+    // In ConfigManager.java, update getWebhookConfigs()
+    public Map<String, List<WebhookConfig>> getWebhookConfigs() {
+        Map<String, List<WebhookConfig>> result = new HashMap<>();
 
-        if (webhooksSection != null) {
-            for (String logType : webhooksSection.getKeys(false)) {
-                String url = config.getString("logs.webhooks." + logType + ".url");
-                String conditionStr = config.getString("logs.webhooks." + logType + ".condition");
+        // Try the new format first (root level webhooks)
+        ConfigurationSection webhooksSection = config.getConfigurationSection("webhooks");
 
-                List<FilterCondition> conditions = new ArrayList<>();
-                if (conditionStr != null && !conditionStr.isEmpty()) {
-                    Map.Entry<String, List<FilterCondition>> parsed = FilterSerializer.deserialize(";" + conditionStr);
-                    conditions = parsed.getValue();
-                }
-
-                configs.put(logType, new WebhookConfig(url, conditions));
-            }
+        // Fall back to old format if new format isn't found
+        if (webhooksSection == null) {
+            webhooksSection = config.getConfigurationSection("logs.webhooks");
         }
 
-        return configs;
+        if (webhooksSection == null) return result;
+
+        for (String webhookKey : webhooksSection.getKeys(false)) {
+            ConfigurationSection webhook = webhooksSection.getConfigurationSection(webhookKey);
+            String type = null;
+            String url = null;
+            String conditionStr = null;
+
+            if (webhook != null) {
+                // Try the new format with explicit "type" field
+                type = webhook.getString("type");
+                url = webhook.getString("url");
+                conditionStr = webhook.getString("condition");
+            } else {
+                // Try the old format where the key is the type
+                type = webhookKey;
+                url = webhooksSection.getString(webhookKey + ".url");
+                conditionStr = webhooksSection.getString(webhookKey + ".condition");
+            }
+
+            if (type == null || url == null) continue;
+
+            List<FilterCondition> conditions = new ArrayList<>();
+            if (conditionStr != null && !conditionStr.isEmpty()) {
+                Map.Entry<String, List<FilterCondition>> parsed = FilterSerializer.deserialize(";" + conditionStr);
+                conditions = parsed.getValue();
+            }
+
+            WebhookConfig config = new WebhookConfig(url, conditions, type);
+
+            // Group configs by their log type
+            result.computeIfAbsent(type, k -> new ArrayList<>()).add(config);
+        }
+
+        return result;
     }
     public int getRetentionPeriodDays() {
         return config.getInt("logs.retention-period-days", 30);
@@ -107,5 +134,5 @@ public class ConfigManager {
         return config.getLong("logs.cleanup-interval-minutes", 60) * 60 * 20;
     }
 
-    public record WebhookConfig(String url, List<FilterCondition> conditions) {}
+    public record WebhookConfig(String url, List<FilterCondition> conditions, String type) {}
 }
