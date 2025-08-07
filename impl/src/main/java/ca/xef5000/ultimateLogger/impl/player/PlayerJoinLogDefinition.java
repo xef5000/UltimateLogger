@@ -4,6 +4,7 @@ import ca.xef5000.ultimateLogger.api.LogData;
 import ca.xef5000.ultimateLogger.api.LogDefinition;
 import ca.xef5000.ultimateLogger.api.ParameterDefinition;
 import ca.xef5000.ultimateLogger.api.ParameterType;
+import ca.xef5000.ultimateLogger.utils.ComponentUtils;
 import net.kyori.adventure.text.TranslatableComponent;
 import org.bukkit.event.player.PlayerJoinEvent;
 
@@ -32,7 +33,7 @@ public class PlayerJoinLogDefinition extends LogDefinition<PlayerJoinEvent> {
         return new LogData()
                 .put("player_uuid", event.getPlayer().getUniqueId().toString())
                 .put("player_name", event.getPlayer().getName())
-                .put("join_message", ((TranslatableComponent)event.joinMessage()) == null ? "null" : ((TranslatableComponent)event.joinMessage()).key())
+                .put("join_message", ComponentUtils.extractText(event.joinMessage()))
                 .put("ip_address", Objects.requireNonNull(event.getPlayer().getAddress()).getAddress().getHostAddress());
     }
 

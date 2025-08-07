@@ -4,6 +4,7 @@ import ca.xef5000.ultimateLogger.api.LogData;
 import ca.xef5000.ultimateLogger.api.LogDefinition;
 import ca.xef5000.ultimateLogger.api.ParameterDefinition;
 import ca.xef5000.ultimateLogger.api.ParameterType;
+import ca.xef5000.ultimateLogger.utils.ComponentUtils;
 import net.kyori.adventure.text.TextComponent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
 
@@ -36,7 +37,7 @@ public class ChestInteractionLogDefinition extends LogDefinition<InventoryOpenEv
                 .put("player_uuid", player.getUniqueId().toString())
                 .put("player_name", player.getName())
                 .put("inventory_type", event.getInventory().getType().toString())
-                .put("container_name", ((TextComponent)event.getView().title()).content())
+                .put("container_name", ComponentUtils.extractText(event.getView().title()))
                 .put("location_world", event.getInventory().getLocation() != null ? 
                      event.getInventory().getLocation().getWorld().getName() : "UNKNOWN")
                 .put("location_x", event.getInventory().getLocation() != null ? 

@@ -4,6 +4,7 @@ import ca.xef5000.ultimateLogger.api.LogData;
 import ca.xef5000.ultimateLogger.api.LogDefinition;
 import ca.xef5000.ultimateLogger.api.ParameterDefinition;
 import ca.xef5000.ultimateLogger.api.ParameterType;
+import ca.xef5000.ultimateLogger.utils.ComponentUtils;
 import net.kyori.adventure.text.TextComponent;
 import org.bukkit.event.player.PlayerKickEvent;
 
@@ -30,7 +31,7 @@ public class PlayerKickLogDefinition extends LogDefinition<PlayerKickEvent> {
         return new LogData()
                 .put("player_uuid", event.getPlayer().getUniqueId().toString())
                 .put("player_name", event.getPlayer().getName())
-                .put("kick_reason", ((TextComponent) event.reason()).content());
+                .put("kick_reason", ComponentUtils.extractText(event.reason()));
     }
 
     @Override
