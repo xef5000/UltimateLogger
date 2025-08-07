@@ -47,7 +47,11 @@ logs:
 
   # Webhook settings
   webhooks:
-    #block_break: "https://discord.com/api/webhooks/1234567890/abcdefghijklmnopqrstuvwxyz"
+    #block_break:
+    #  url: "https://discord.com/api/webhooks/1234567890/abcdefghijklmnopqrstuvwxyz"
+    #player_chat:
+    #  url: "https://discord.com/api/webhooks/1234567890/abcdefghijklmnopqrstuvwxyz"
+    #  condition: "message|=|test"
 
   # How many days to keep logs before they are automatically deleted.
   # Set to -1 to disable auto-deletion.

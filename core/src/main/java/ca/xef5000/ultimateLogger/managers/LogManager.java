@@ -42,7 +42,7 @@ public class LogManager {
 
     private final Set<String> disabledLogTypes;
 
-    private final Map<String, String> webhookUrls;
+    private final Map<String, ConfigManager.WebhookConfig> webhookConfigs;
 
     public LogManager(UltimateLogger plugin, WebhookManager webhookManager, DatabaseManager dbManager) {
         this.plugin = plugin;
@@ -50,7 +50,7 @@ public class LogManager {
         this.webhookManager = webhookManager;
 
         this.disabledLogTypes = plugin.getConfigManager().getDisabledLogTypes();
-        this.webhookUrls = plugin.getConfigManager().getWebhookUrls();
+        this.webhookConfigs = plugin.getConfigManager().getWebhookConfigs();
 
         // Build a cache with size and expiry time from config
         this.logCache = CacheBuilder.newBuilder()
@@ -92,10 +92,15 @@ public class LogManager {
 
     private void queueLog(String logType, LogData data) {
         saveQueue.add(new LogDataTuple(logType, data, logID -> {
-            String webhookUrl = webhookUrls.get(logType);
-            if (webhookUrl != null) {
+            ConfigManager.WebhookConfig webhookConfig = webhookConfigs.get(logType);
+            if (webhookConfig != null) {
                 data.setId(logID);
-                webhookManager.sendWebhook(webhookUrl, logType, data);
+                webhookManager.sendWebhook(
+                        webhookConfig.url(),
+                        logType,
+                        data,
+                        webhookConfig.conditions()
+                );
             }
         }));
     }

@@ -1,6 +1,8 @@
 package ca.xef5000.ultimateLogger.managers;
 
 import ca.xef5000.ultimateLogger.UltimateLogger;
+import ca.xef5000.ultimateLogger.api.FilterCondition;
+import ca.xef5000.ultimateLogger.utils.FilterSerializer;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 
@@ -75,18 +77,26 @@ public class ConfigManager {
         return new HashSet<>(disabledList);
     }
 
-    public Map<String, String> getWebhookUrls() {
-        Map<String, String> webhookMap = new HashMap<>();
-        ConfigurationSection section = config.getConfigurationSection("logs.webhooks");
-        if (section != null) {
-            for (String key : section.getKeys(false)) {
-                String url = section.getString(key);
-                if (url != null && !url.isEmpty()) {
-                    webhookMap.put(key, url);
+    public Map<String, WebhookConfig> getWebhookConfigs() {
+        Map<String, WebhookConfig> configs = new HashMap<>();
+        ConfigurationSection webhooksSection = config.getConfigurationSection("logs.webhooks");
+
+        if (webhooksSection != null) {
+            for (String logType : webhooksSection.getKeys(false)) {
+                String url = config.getString("logs.webhooks." + logType + ".url");
+                String conditionStr = config.getString("logs.webhooks." + logType + ".condition");
+
+                List<FilterCondition> conditions = new ArrayList<>();
+                if (conditionStr != null && !conditionStr.isEmpty()) {
+                    Map.Entry<String, List<FilterCondition>> parsed = FilterSerializer.deserialize(";" + conditionStr);
+                    conditions = parsed.getValue();
                 }
+
+                configs.put(logType, new WebhookConfig(url, conditions));
             }
         }
-        return webhookMap;
+
+        return configs;
     }
     public int getRetentionPeriodDays() {
         return config.getInt("logs.retention-period-days", 30);
@@ -97,4 +107,5 @@ public class ConfigManager {
         return config.getLong("logs.cleanup-interval-minutes", 60) * 60 * 20;
     }
 
+    public record WebhookConfig(String url, List<FilterCondition> conditions) {}
 }

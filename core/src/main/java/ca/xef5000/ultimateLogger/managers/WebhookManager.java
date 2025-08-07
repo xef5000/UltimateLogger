@@ -1,6 +1,7 @@
 package ca.xef5000.ultimateLogger.managers;
 
 import ca.xef5000.ultimateLogger.UltimateLogger;
+import ca.xef5000.ultimateLogger.api.FilterCondition;
 import ca.xef5000.ultimateLogger.api.LogData;
 import com.google.gson.Gson;
 
@@ -33,9 +34,25 @@ public class WebhookManager {
      * This is a "fire-and-forget" method.
      */
     public void sendWebhook(String url, String logType, LogData data) {
+        sendWebhook(url, logType, data, null);
+    }
+
+    /**
+     * Formats and sends a log to a Discord webhook asynchronously if it passes the filter conditions.
+     * This is a "fire-and-forget" method.
+     */
+    public void sendWebhook(String url, String logType, LogData data, List<FilterCondition> conditions) {
         // Run the entire process asynchronously to never block the server thread.
         CompletableFuture.runAsync(() -> {
             try {
+                // Check if the data matches all filter conditions before sending
+                if (conditions != null && !conditions.isEmpty()) {
+                    if (!matchesAllConditions(data, conditions)) {
+                        // Skip sending webhook if conditions aren't met
+                        return;
+                    }
+                }
+
                 String jsonPayload = buildDiscordEmbed(logType, data);
 
                 HttpRequest request = HttpRequest.newBuilder()
@@ -57,6 +74,75 @@ public class WebhookManager {
                 e.printStackTrace();
             }
         });
+    }
+
+    /**
+     * Checks if the log data matches all filter conditions.
+     */
+    private boolean matchesAllConditions(LogData data, List<FilterCondition> conditions) {
+        for (FilterCondition condition : conditions) {
+            String key = condition.key();
+            String comparator = condition.comparator();
+            String value = condition.value().toString();
+            Object dataValue = data.getData().get(key);
+
+            if (dataValue == null) {
+                return false;
+            }
+
+            String dataValueStr = dataValue.toString();
+
+            boolean matches = switch (comparator) {
+                case "=" -> dataValueStr.equals(value);
+                case "!=" -> !dataValueStr.equals(value);
+                case ">" -> {
+                    try {
+                        double numData = Double.parseDouble(dataValueStr);
+                        double numValue = Double.parseDouble(value);
+                        yield numData > numValue;
+                    } catch (NumberFormatException e) {
+                        yield false;
+                    }
+                }
+                case "<" -> {
+                    try {
+                        double numData = Double.parseDouble(dataValueStr);
+                        double numValue = Double.parseDouble(value);
+                        yield numData < numValue;
+                    } catch (NumberFormatException e) {
+                        yield false;
+                    }
+                }
+                case ">=" -> {
+                    try {
+                        double numData = Double.parseDouble(dataValueStr);
+                        double numValue = Double.parseDouble(value);
+                        yield numData >= numValue;
+                    } catch (NumberFormatException e) {
+                        yield false;
+                    }
+                }
+                case "<=" -> {
+                    try {
+                        double numData = Double.parseDouble(dataValueStr);
+                        double numValue = Double.parseDouble(value);
+                        yield numData <= numValue;
+                    } catch (NumberFormatException e) {
+                        yield false;
+                    }
+                }
+                case "startswith" -> dataValueStr.startsWith(value);
+                case "endswith" -> dataValueStr.endsWith(value);
+                case "contains" -> dataValueStr.contains(value);
+                default -> false;
+            };
+
+            if (!matches) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**
