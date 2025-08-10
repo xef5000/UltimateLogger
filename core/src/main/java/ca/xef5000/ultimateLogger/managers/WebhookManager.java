@@ -45,9 +45,9 @@ public class WebhookManager {
         // Run the entire process asynchronously to never block the server thread.
         CompletableFuture.runAsync(() -> {
             try {
-                // Check if the data matches all filter conditions before sending
+                // Check if the data matches filter conditions before sending
                 if (conditions != null && !conditions.isEmpty()) {
-                    if (!matchesAllConditions(data, conditions)) {
+                    if (!matchesConditions(data, conditions)) {
                         // Skip sending webhook if conditions aren't met
                         return;
                     }
@@ -77,72 +77,126 @@ public class WebhookManager {
     }
 
     /**
-     * Checks if the log data matches all filter conditions.
+     * Checks if the log data matches filter conditions with support for AND/OR logic.
      */
-    private boolean matchesAllConditions(LogData data, List<FilterCondition> conditions) {
+    private boolean matchesConditions(LogData data, List<FilterCondition> conditions) {
+        if (conditions.isEmpty()) {
+            return true;
+        }
+
+        // Group conditions by their logical operator
+        List<FilterCondition> andConditions = new ArrayList<>();
+        List<FilterCondition> orConditions = new ArrayList<>();
+
         for (FilterCondition condition : conditions) {
-            String key = condition.key();
-            String comparator = condition.comparator();
-            String value = condition.value().toString();
-            Object dataValue = data.getData().get(key);
-
-            if (dataValue == null) {
-                return false;
-            }
-
-            String dataValueStr = dataValue.toString();
-
-            boolean matches = switch (comparator) {
-                case "=" -> dataValueStr.equals(value);
-                case "!=" -> !dataValueStr.equals(value);
-                case ">" -> {
-                    try {
-                        double numData = Double.parseDouble(dataValueStr);
-                        double numValue = Double.parseDouble(value);
-                        yield numData > numValue;
-                    } catch (NumberFormatException e) {
-                        yield false;
-                    }
-                }
-                case "<" -> {
-                    try {
-                        double numData = Double.parseDouble(dataValueStr);
-                        double numValue = Double.parseDouble(value);
-                        yield numData < numValue;
-                    } catch (NumberFormatException e) {
-                        yield false;
-                    }
-                }
-                case ">=" -> {
-                    try {
-                        double numData = Double.parseDouble(dataValueStr);
-                        double numValue = Double.parseDouble(value);
-                        yield numData >= numValue;
-                    } catch (NumberFormatException e) {
-                        yield false;
-                    }
-                }
-                case "<=" -> {
-                    try {
-                        double numData = Double.parseDouble(dataValueStr);
-                        double numValue = Double.parseDouble(value);
-                        yield numData <= numValue;
-                    } catch (NumberFormatException e) {
-                        yield false;
-                    }
-                }
-                case "startswith" -> dataValueStr.startsWith(value);
-                case "endswith" -> dataValueStr.endsWith(value);
-                case "contains" -> dataValueStr.contains(value);
-                default -> false;
-            };
-
-            if (!matches) {
-                return false;
+            if (condition.logicalOperator() == FilterCondition.LogicalOperator.OR) {
+                orConditions.add(condition);
+            } else {
+                andConditions.add(condition);
             }
         }
 
+        // All AND conditions must be true
+        boolean andResult = andConditions.isEmpty() || matchesAllConditions(data, andConditions);
+
+        // At least one OR condition must be true (if any OR conditions exist)
+        boolean orResult = orConditions.isEmpty() || matchesAnyCondition(data, orConditions);
+
+        // If we have both AND and OR conditions, both groups must pass
+        // If we only have AND conditions, only AND result matters
+        // If we only have OR conditions, only OR result matters
+        if (!andConditions.isEmpty() && !orConditions.isEmpty()) {
+            return andResult && orResult;
+        } else if (!andConditions.isEmpty()) {
+            return andResult;
+        } else {
+            return orResult;
+        }
+    }
+
+    /**
+     * Checks if the log data matches all filter conditions (AND logic).
+     */
+    private boolean matchesAllConditions(LogData data, List<FilterCondition> conditions) {
+        for (FilterCondition condition : conditions) {
+            if (!matchesSingleCondition(data, condition)) {
+                return false;
+            }
+        }
         return true;
+    }
+
+    /**
+     * Checks if the log data matches any filter condition (OR logic).
+     */
+    private boolean matchesAnyCondition(LogData data, List<FilterCondition> conditions) {
+        for (FilterCondition condition : conditions) {
+            if (matchesSingleCondition(data, condition)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Checks if the log data matches a single filter condition.
+     */
+    private boolean matchesSingleCondition(LogData data, FilterCondition condition) {
+        String key = condition.key();
+        String comparator = condition.comparator();
+        String value = condition.value().toString();
+        Object dataValue = data.getData().get(key);
+
+        if (dataValue == null) {
+            return false;
+        }
+
+        String dataValueStr = dataValue.toString();
+
+        return switch (comparator) {
+            case "=" -> dataValueStr.equals(value);
+            case "!=" -> !dataValueStr.equals(value);
+            case ">" -> {
+                try {
+                    double numData = Double.parseDouble(dataValueStr);
+                    double numValue = Double.parseDouble(value);
+                    yield numData > numValue;
+                } catch (NumberFormatException e) {
+                    yield false;
+                }
+            }
+            case "<" -> {
+                try {
+                    double numData = Double.parseDouble(dataValueStr);
+                    double numValue = Double.parseDouble(value);
+                    yield numData < numValue;
+                } catch (NumberFormatException e) {
+                    yield false;
+                }
+            }
+            case ">=" -> {
+                try {
+                    double numData = Double.parseDouble(dataValueStr);
+                    double numValue = Double.parseDouble(value);
+                    yield numData >= numValue;
+                } catch (NumberFormatException e) {
+                    yield false;
+                }
+            }
+            case "<=" -> {
+                try {
+                    double numData = Double.parseDouble(dataValueStr);
+                    double numValue = Double.parseDouble(value);
+                    yield numData <= numValue;
+                } catch (NumberFormatException e) {
+                    yield false;
+                }
+            }
+            case "startswith" -> dataValueStr.startsWith(value);
+            case "endswith" -> dataValueStr.endsWith(value);
+            case "contains" -> dataValueStr.contains(value);
+            default -> false;
+        };
     }
 
     /**

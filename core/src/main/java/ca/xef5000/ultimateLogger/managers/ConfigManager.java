@@ -113,7 +113,10 @@ public class ConfigManager {
 
             List<FilterCondition> conditions = new ArrayList<>();
             if (conditionStr != null && !conditionStr.isEmpty()) {
-                Map.Entry<String, List<FilterCondition>> parsed = FilterSerializer.deserialize(";" + conditionStr);
+                // Prepend delimiter to ensure proper parsing (empty filter part)
+                String prefixedCondition = conditionStr.startsWith(";") || conditionStr.startsWith("&")
+                    ? conditionStr : ";" + conditionStr;
+                Map.Entry<String, List<FilterCondition>> parsed = FilterSerializer.deserialize(prefixedCondition);
                 conditions = parsed.getValue();
             }
 
