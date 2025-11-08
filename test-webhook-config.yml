@@ -1,0 +1,47 @@
+# Test configuration demonstrating OR condition support in webhooks
+
+logs:
+  webhooks:
+    # Example 1: AND conditions (traditional behavior)
+    # This webhook will trigger only when player_name=Steve AND block_type=DIAMOND_ORE
+    diamond_mining_steve:
+      type: "block_break"
+      url: "https://discord.com/api/webhooks/example1"
+      condition: "player_name|=|Steve;block_type|=|DIAMOND_ORE"
+    
+    # Example 2: OR conditions (new functionality)
+    # This webhook will trigger when player_name=Steve OR player_name=Alex
+    important_players:
+      type: "block_break"
+      url: "https://discord.com/api/webhooks/example2"
+      condition: "player_name|=|Steve&player_name|=|Alex"
+    
+    # Example 3: Mixed AND/OR conditions
+    # This webhook will trigger when block_type=DIAMOND_ORE AND (player_name=Steve OR player_name=Alex)
+    diamond_mining_vips:
+      type: "block_break"
+      url: "https://discord.com/api/webhooks/example3"
+      condition: "block_type|=|DIAMOND_ORE;player_name|=|Steve&player_name|=|Alex"
+    
+    # Example 4: Multiple OR conditions
+    # This webhook will trigger for any valuable block type
+    valuable_blocks:
+      type: "block_break"
+      url: "https://discord.com/api/webhooks/example4"
+      condition: "block_type|=|DIAMOND_ORE&block_type|=|EMERALD_ORE&block_type|=|ANCIENT_DEBRIS"
+    
+    # Example 5: Chat filtering with OR conditions
+    # This webhook will trigger for messages containing "help" OR "admin"
+    help_requests:
+      type: "player_chat"
+      url: "https://discord.com/api/webhooks/example5"
+      condition: "message|contains|help&message|contains|admin"
+
+# Legend:
+# ; = AND operator (all conditions with ; must be true)
+# & = OR operator (at least one condition with & must be true)
+# | = Field delimiter (field|comparator|value)
+#
+# Supported comparators:
+# = (equals), != (not equals), > (greater than), < (less than), 
+# >= (greater or equal), <= (less or equal), startswith, endswith, contains

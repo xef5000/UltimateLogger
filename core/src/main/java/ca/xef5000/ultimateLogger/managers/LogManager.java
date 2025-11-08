@@ -348,16 +348,73 @@ public class LogManager {
 
                 if (advancedFilters != null) {
                     for (FilterCondition condition : advancedFilters) {
+                        String keyName = condition.key();
                         String comparator = condition.comparator();
+                        Object value = condition.value();
+
+                        // Special handling for timestamp filter (stored in its own column)
+                        if ("timestamp".equalsIgnoreCase(keyName)) {
+                            String cmp = comparator;
+                            if ("between".equalsIgnoreCase(cmp)) {
+                                // Expect value to be a range: long[]{start, end} or List/Collection with two numbers
+                                Long start = null;
+                                Long end = null;
+
+                                if (value instanceof long[] arr && arr.length >= 2) {
+                                    start = arr[0];
+                                    end = arr[1];
+                                } else if (value instanceof Long[] arr2 && arr2.length >= 2) {
+                                    start = arr2[0];
+                                    end = arr2[1];
+                                } else if (value instanceof List<?> list && list.size() >= 2) {
+                                    try { start = Long.parseLong(String.valueOf(list.get(0))); } catch (Exception ignored) {}
+                                    try { end = Long.parseLong(String.valueOf(list.get(1))); } catch (Exception ignored) {}
+                                } else if (value instanceof String s && s.contains(",")) {
+                                    String[] parts = s.split(",");
+                                    if (parts.length >= 2) {
+                                        try { start = Long.parseLong(parts[0].trim()); } catch (Exception ignored) {}
+                                        try { end = Long.parseLong(parts[1].trim()); } catch (Exception ignored) {}
+                                    }
+                                }
+
+                                if (start != null && end != null) {
+                                    long min = Math.min(start, end);
+                                    long max = Math.max(start, end);
+                                    sqlBuilder.append("AND timestamp BETWEEN ? AND ? ");
+                                    params.add(min);
+                                    params.add(max);
+                                }
+                                continue;
+                            }
+
+                            if ("before".equalsIgnoreCase(cmp)) cmp = "<";
+                            if ("after".equalsIgnoreCase(cmp)) cmp = ">";
+                            if (List.of("=", "!=", ">", "<", ">=", "<=").contains(cmp)) {
+                                sqlBuilder.append("AND timestamp " + cmp + " ? ");
+                                // Ensure numeric value
+                                if (value instanceof Number) {
+                                    params.add(((Number) value).longValue());
+                                } else {
+                                    try {
+                                        params.add(Long.parseLong(String.valueOf(value)));
+                                    } catch (NumberFormatException ex) {
+                                        // Skip invalid timestamp value
+                                    }
+                                }
+                            }
+                            continue; // Done with this condition
+                        }
+
+                        // Default: JSON field condition
                         if (List.of("=", "!=", ">", "<", ">=", "<=").contains(comparator)) {
-                            sqlBuilder.append(String.format("AND json_extract(data, '$.%s') %s ? ", condition.key(), comparator));
-                            params.add(condition.value());
-                        } else if ("startswith".equals(comparator)) {
-                            sqlBuilder.append(String.format("AND json_extract(data, '$.%s') LIKE ? ", condition.key()));
-                            params.add(condition.value() + "%");
-                        } else if ("endswith".equals(comparator)) {
-                            sqlBuilder.append(String.format("AND json_extract(data, '$.%s') LIKE ? ", condition.key()));
-                            params.add("%" + condition.value());
+                            sqlBuilder.append(String.format("AND json_extract(data, '$.%s') %s ? ", keyName, comparator));
+                            params.add(value);
+                        } else if ("startswith".equalsIgnoreCase(comparator)) {
+                            sqlBuilder.append(String.format("AND json_extract(data, '$.%s') LIKE ? ", keyName));
+                            params.add(value + "%");
+                        } else if ("endswith".equalsIgnoreCase(comparator)) {
+                            sqlBuilder.append(String.format("AND json_extract(data, '$.%s') LIKE ? ", keyName));
+                            params.add("%" + value);
                         }
                     }
                 }

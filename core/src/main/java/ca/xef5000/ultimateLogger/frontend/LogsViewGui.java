@@ -90,6 +90,15 @@ public class LogsViewGui extends Gui {
             guiManager.openGui(p, new LogsViewGui(plugin, currentPage, currentFilter, advancedFilters));
         });
 
+        ItemStack filterDataItem = createItem(Material.CLOCK, ChatColor.AQUA + "Filter by time", Collections.singletonList(ChatColor.GRAY + "Filter the logs by time."));
+        inventory.setItem(51, filterDataItem);
+        setAction(51, event -> {
+            Player p = (Player) event.getWhoClicked();
+            p.closeInventory();
+            // Open time filter GUI
+            guiManager.openGui(p, new TimeFilterGui(plugin, currentFilter, new ArrayList<>(advancedFilters), currentPage));
+        });
+
         String nextName = ChatColor.YELLOW + "Next Page »";
         List<String> nextLore = Collections.singletonList(ChatColor.GRAY + "Click to go to page " + ChatColor.GREEN + (currentPage + 1));
         ItemStack nextPage = createItem(Material.ARROW, nextName, nextLore);
