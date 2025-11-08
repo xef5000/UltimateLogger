@@ -97,19 +97,22 @@ public class LogManager {
             return; // Abort registration
         }
 
-        plugin.getServer().getPluginManager().registerEvent(
-                definition.getEventClass(),
-                new Listener() {}, // Empty listener object
-                EventPriority.MONITOR, // Use MONITOR to read event data after other plugins are done
-                (listener, event) -> {
-                    // Make sure the event is of the correct type and should be logged
-                    if (definition.getEventClass().isInstance(event) && definition.shouldLog((T) event)) {
-                        LogData data = definition.captureData((T) event);
-                        queueLog(definition.getId(), data);
-                    }
-                },
-                plugin
-        );
+        if (definition.getEventClass() != null) {
+            plugin.getServer().getPluginManager().registerEvent(
+                    definition.getEventClass(),
+                    new Listener() {}, // Empty listener object
+                    EventPriority.MONITOR, // Use MONITOR to read event data after other plugins are done
+                    (listener, event) -> {
+                        // Make sure the event is of the correct type and should be logged
+                        if (definition.getEventClass().isInstance(event) && definition.shouldLog((T) event)) {
+                            LogData data = definition.captureData((T) event);
+                            queueLog(definition.getId(), data);
+                        }
+                    },
+                    plugin
+            );
+        }
+
         logDefinitionMap.put(definition.getId(), definition);
         plugin.getLogger().info("Registered listener for LogDefinition: " + definition.getId());
     }
