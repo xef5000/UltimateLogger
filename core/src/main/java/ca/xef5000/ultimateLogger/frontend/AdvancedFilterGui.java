@@ -151,7 +151,7 @@ public class AdvancedFilterGui extends Gui {
             return List.of("=", "!=", ">", "<", ">=", "<=");
         }
         if (type == ParameterType.STRING || type == ParameterType.UUID) {
-            return List.of("=", "!=", "startswith", "endswith");
+            return List.of("=", "!=", "startswith", "endswith", "contains");
         }
         return List.of("=", "!="); // For BOOLEAN
     }

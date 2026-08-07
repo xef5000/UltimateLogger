@@ -418,6 +418,9 @@ public class LogManager {
                         } else if ("endswith".equalsIgnoreCase(comparator)) {
                             sqlBuilder.append(String.format("AND json_extract(data, '$.%s') LIKE ? ", keyName));
                             params.add("%" + value);
+                        } else if ("contains".equalsIgnoreCase(comparator)) {
+                            sqlBuilder.append(String.format("AND json_extract(data, '$.%s') LIKE ? ", keyName));
+                            params.add("%" + value + "%");
                         }
                     }
                 }
