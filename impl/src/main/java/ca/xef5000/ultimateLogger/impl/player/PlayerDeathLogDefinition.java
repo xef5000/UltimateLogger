@@ -4,10 +4,14 @@ import ca.xef5000.ultimateLogger.api.LogData;
 import ca.xef5000.ultimateLogger.api.LogDefinition;
 import ca.xef5000.ultimateLogger.api.ParameterDefinition;
 import ca.xef5000.ultimateLogger.api.ParameterType;
-import net.kyori.adventure.text.TextComponent;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
+import net.kyori.adventure.translation.GlobalTranslator;
 import org.bukkit.event.entity.PlayerDeathEvent;
 
+import javax.annotation.Nonnull;
 import java.util.List;
+import java.util.Locale;
 
 public class PlayerDeathLogDefinition extends LogDefinition<PlayerDeathEvent> {
     @Override
@@ -31,7 +35,7 @@ public class PlayerDeathLogDefinition extends LogDefinition<PlayerDeathEvent> {
         return new LogData()
                 .put("player_uuid", event.getEntity().getUniqueId().toString())
                 .put("player_name", event.getEntity().getName())
-                .put("death_message", ((TextComponent)event.deathMessage()).content())
+                .put("death_message", getDeathMessage(event.deathMessage()))
                 .put("location_world", event.getEntity().getLocation().getWorld().getName())
                 .put("location_x", event.getEntity().getLocation().getBlockX())
                 .put("location_y", event.getEntity().getLocation().getBlockY())
@@ -49,6 +53,17 @@ public class PlayerDeathLogDefinition extends LogDefinition<PlayerDeathEvent> {
                 new ParameterDefinition("location_world", "Location World", ParameterType.STRING),
                 new ParameterDefinition("death_message", "Death Message", ParameterType.STRING)
         );
+    }
+
+    @Nonnull
+    private String getDeathMessage(Component component) {
+        if (component == null) {
+            return "";
+        }
+
+        Component translatedComponent = GlobalTranslator.render(component, Locale.ENGLISH);
+
+        return PlainTextComponentSerializer.plainText().serialize(translatedComponent);
     }
 }
 
