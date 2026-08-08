@@ -121,8 +121,11 @@ public class LogManager {
 
     private void queueLog(String logType, LogData data) {
         LogQueuedEvent event = new LogQueuedEvent(logType, data);
-        Bukkit.getPluginManager().callEvent(event);
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            Bukkit.getPluginManager().callEvent(event);
+        });
         if (event.isCancelled()) return;
+
         if (dbManager != null && dbManager.isOperational()) {
             saveQueue.add(new LogDataTuple(logType, data, logID -> {
                 List<ConfigManager.WebhookConfig> configs = webhookConfigs.get(logType);
